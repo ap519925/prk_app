@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:find_my_car/screens/home_screen.dart';
 import 'package:find_my_car/services/location_service.dart';
+import 'package:find_my_car/services/notification_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await LocationService.instance.initialize();
+  await NotificationService.instance.initialize();
   runApp(const FindMyCarApp());
 }
 

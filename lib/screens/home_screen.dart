@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:find_my_car/models/parking_spot.dart';
+import 'package:find_my_car/models/parking_alert.dart';
 import 'package:find_my_car/services/location_service.dart';
 import 'package:find_my_car/services/storage_service.dart';
 import 'package:find_my_car/services/navigation_service.dart';
+import 'package:find_my_car/services/parking_alerts_service.dart';
+import 'package:find_my_car/services/notification_service.dart';
 import 'package:find_my_car/screens/map_screen.dart';
 import 'package:find_my_car/screens/parking_details_screen.dart';
 import 'package:image_picker/image_picker.dart';
@@ -17,11 +20,17 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   ParkingSpot? _parkingSpot;
   bool _isLoading = false;
+  bool _loadingAlerts = false;
 
   @override
   void initState() {
     super.initState();
     _loadParkingSpot();
+    _initializeNotifications();
+  }
+
+  Future<void> _initializeNotifications() async {
+    await NotificationService.instance.initialize();
   }
 
   Future<void> _loadParkingSpot() async {
@@ -57,24 +66,45 @@ class _HomeScreenState extends State<HomeScreen> {
         position.longitude,
       );
 
+      // Fetch parking alerts
+      setState(() => _loadingAlerts = true);
+      final alertsResponse = await ParkingAlertsService.instance.getParkingAlerts(
+        position.latitude,
+        position.longitude,
+      );
+      setState(() => _loadingAlerts = false);
+
       final spot = ParkingSpot(
         latitude: position.latitude,
         longitude: position.longitude,
         savedAt: DateTime.now(),
         address: address,
+        alerts: alertsResponse.alerts,
+        city: alertsResponse.city,
+        state: alertsResponse.state,
       );
 
       await StorageService.instance.saveParkingSpot(spot);
+
+      // Show alert summary if there are any alerts
+      if (alertsResponse.alerts.isNotEmpty) {
+        await NotificationService.instance.showAlertSummary(alertsResponse.alerts);
+      }
 
       if (mounted) {
         setState(() {
           _parkingSpot = spot;
         });
 
+        final alertMessage = alertsResponse.alerts.isNotEmpty
+            ? ' ${alertsResponse.alerts.length} parking alert(s) found.'
+            : '';
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: const Text('✓ Parking spot saved!'),
+            content: Text('✓ Parking spot saved!$alertMessage'),
             backgroundColor: Colors.green,
+            duration: const Duration(seconds: 4),
             action: SnackBarAction(
               label: 'ADD PHOTO',
               textColor: Colors.white,
@@ -94,7 +124,10 @@ class _HomeScreenState extends State<HomeScreen> {
       }
     } finally {
       if (mounted) {
-        setState(() => _isLoading = false);
+        setState(() {
+          _isLoading = false;
+          _loadingAlerts = false;
+        });
       }
     }
   }
@@ -150,6 +183,9 @@ class _HomeScreenState extends State<HomeScreen> {
         photoPath: photo.path,
         timerEnd: _parkingSpot!.timerEnd,
         address: _parkingSpot!.address,
+        alerts: _parkingSpot!.alerts,
+        city: _parkingSpot!.city,
+        state: _parkingSpot!.state,
       );
 
       await StorageService.instance.saveParkingSpot(updatedSpot);
@@ -211,6 +247,171 @@ class _HomeScreenState extends State<HomeScreen> {
         builder: (context) => MapScreen(parkingSpot: _parkingSpot!),
       ),
     );
+  }
+
+  Future<void> _setTimer() async {
+    if (_parkingSpot == null) return;
+
+    final now = DateTime.now();
+    final times = [
+      ('15 minutes', now.add(const Duration(minutes: 15))),
+      ('30 minutes', now.add(const Duration(minutes: 30))),
+      ('1 hour', now.add(const Duration(hours: 1))),
+      ('2 hours', now.add(const Duration(hours: 2))),
+      ('3 hours', now.add(const Duration(hours: 3))),
+      ('Custom', null),
+    ];
+
+    final selected = await showDialog<DateTime>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Set Parking Timer'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: times.map((time) {
+            return ListTile(
+              title: Text(time.$1),
+              onTap: () async {
+                if (time.$2 == null) {
+                  // Custom time picker
+                  final customTime = await showTimePicker(
+                    context: context,
+                    initialTime: TimeOfDay.now(),
+                  );
+                  if (customTime != null) {
+                    final customDateTime = DateTime(
+                      now.year,
+                      now.month,
+                      now.day,
+                      customTime.hour,
+                      customTime.minute,
+                    );
+                    if (mounted) Navigator.pop(context, customDateTime);
+                  }
+                } else {
+                  if (mounted) Navigator.pop(context, time.$2);
+                }
+              },
+            );
+          }).toList(),
+        ),
+      ),
+    );
+
+    if (selected != null) {
+      final updatedSpot = ParkingSpot(
+        latitude: _parkingSpot!.latitude,
+        longitude: _parkingSpot!.longitude,
+        savedAt: _parkingSpot!.savedAt,
+        photoPath: _parkingSpot!.photoPath,
+        timerEnd: selected,
+        address: _parkingSpot!.address,
+        alerts: _parkingSpot!.alerts,
+        city: _parkingSpot!.city,
+        state: _parkingSpot!.state,
+      );
+
+      await StorageService.instance.saveParkingSpot(updatedSpot);
+      
+      // Schedule notifications
+      await NotificationService.instance.scheduleTimerNotifications(
+        expirationTime: selected,
+        locationDescription: _parkingSpot!.address ?? 'your parking spot',
+      );
+
+      if (mounted) {
+        setState(() {
+          _parkingSpot = updatedSpot;
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('⏰ Timer set for ${_formatTime(selected)}'),
+            backgroundColor: Colors.blue,
+          ),
+        );
+      }
+    }
+  }
+
+  Widget _buildAlertsSection(ThemeData theme) {
+    final alerts = _parkingSpot!.alerts!;
+    
+    return Card(
+      elevation: 2,
+      color: Colors.orange.shade50,
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.warning_amber_rounded, color: Colors.orange.shade700),
+                const SizedBox(width: 8),
+                Text(
+                  'Parking Alerts',
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: Colors.orange.shade900,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            ...alerts.take(3).map((alert) => Padding(
+              padding: const EdgeInsets.only(bottom: 8.0),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(alert.emoji, style: const TextStyle(fontSize: 20)),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          alert.title,
+                          style: const TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        Text(
+                          alert.description,
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: Colors.grey.shade700,
+                          ),
+                        ),
+                        if (alert.timeRange != null)
+                          Text(
+                            alert.timeRange!,
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey.shade600,
+                              fontStyle: FontStyle.italic,
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            )),
+            if (alerts.length > 3)
+              TextButton(
+                onPressed: _viewDetails,
+                child: Text('View all ${alerts.length} alerts'),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  String _formatTime(DateTime time) {
+    final hour = time.hour > 12 ? time.hour - 12 : time.hour;
+    final period = time.hour >= 12 ? 'PM' : 'AM';
+    final minute = time.minute.toString().padLeft(2, '0');
+    return '$hour:$minute $period';
   }
 
   @override
@@ -303,7 +504,13 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   ),
                 ),
-                const SizedBox(height: 32),
+                const SizedBox(height: 16),
+                
+                // Parking Alerts Section
+                if (_parkingSpot!.alerts != null && _parkingSpot!.alerts!.isNotEmpty) ...[
+                  _buildAlertsSection(theme),
+                  const SizedBox(height: 16),
+                ],
               ],
 
               // Big buttons
@@ -373,7 +580,18 @@ class _HomeScreenState extends State<HomeScreen> {
                       child: OutlinedButton.icon(
                         onPressed: _addPhoto,
                         icon: const Icon(Icons.camera_alt),
-                        label: const Text('ADD PHOTO'),
+                        label: const Text('PHOTO'),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: _setTimer,
+                        icon: const Icon(Icons.timer),
+                        label: const Text('TIMER'),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: Colors.blue,
+                        ),
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -381,6 +599,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       child: OutlinedButton.icon(
                         onPressed: () async {
                           await StorageService.instance.deleteParkingSpot();
+                          await NotificationService.instance.cancelAllNotifications();
                           setState(() {
                             _parkingSpot = null;
                           });

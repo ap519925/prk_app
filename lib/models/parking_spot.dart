@@ -1,3 +1,5 @@
+import 'parking_alert.dart';
+
 class ParkingSpot {
   final double latitude;
   final double longitude;
@@ -5,6 +7,9 @@ class ParkingSpot {
   final String? photoPath;
   final DateTime? timerEnd;
   final String? address;
+  final List<ParkingAlert>? alerts;
+  final String? city;
+  final String? state;
 
   ParkingSpot({
     required this.latitude,
@@ -13,6 +18,9 @@ class ParkingSpot {
     this.photoPath,
     this.timerEnd,
     this.address,
+    this.alerts,
+    this.city,
+    this.state,
   });
 
   Map<String, dynamic> toJson() {
@@ -23,6 +31,9 @@ class ParkingSpot {
       'photoPath': photoPath,
       'timerEnd': timerEnd?.toIso8601String(),
       'address': address,
+      'alerts': alerts?.map((a) => a.toJson()).toList(),
+      'city': city,
+      'state': state,
     };
   }
 
@@ -36,6 +47,11 @@ class ParkingSpot {
           ? DateTime.parse(json['timerEnd'] as String)
           : null,
       address: json['address'] as String?,
+      alerts: json['alerts'] != null
+          ? (json['alerts'] as List).map((a) => ParkingAlert.fromJson(a)).toList()
+          : null,
+      city: json['city'] as String?,
+      state: json['state'] as String?,
     );
   }
 
