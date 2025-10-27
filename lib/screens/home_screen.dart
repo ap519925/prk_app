@@ -340,15 +340,15 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildAlertsSection(ThemeData theme) {
     final alerts = _parkingSpot!.alerts!;
     final isDark = theme.brightness == Brightness.dark;
-    
+
     return Container(
       decoration: BoxDecoration(
-        color: isDark 
+        color: isDark
             ? const Color(0xFF1E293B).withOpacity(0.6) // Slate 800
             : Colors.orange.shade50,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: isDark 
+          color: isDark
               ? const Color(0xFF3B82F6).withOpacity(0.3) // Bright Blue border
               : Colors.orange.shade200,
           width: 2,
@@ -363,7 +363,7 @@ class _HomeScreenState extends State<HomeScreen> {
               children: [
                 Icon(
                   Icons.warning_amber_rounded,
-                  color: isDark 
+                  color: isDark
                       ? const Color(0xFFEF4444) // Red accent
                       : Colors.orange.shade700,
                 ),
@@ -372,7 +372,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   'Parking Alerts',
                   style: theme.textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.bold,
-                    color: isDark 
+                    color: isDark
                         ? const Color(0xFFF1F5F9) // Slate 100
                         : Colors.orange.shade900,
                   ),
@@ -385,7 +385,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   child: Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: isDark 
+                      color: isDark
                           ? const Color(0xFF0F172A) // Slate 900
                           : Colors.white,
                       borderRadius: BorderRadius.circular(8),
@@ -403,7 +403,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                 alert.title,
                                 style: TextStyle(
                                   fontWeight: FontWeight.bold,
-                                  color: isDark 
+                                  color: isDark
                                       ? const Color(0xFFF1F5F9) // Slate 100
                                       : Colors.black87,
                                 ),
@@ -413,7 +413,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                 alert.description,
                                 style: TextStyle(
                                   fontSize: 13,
-                                  color: isDark 
+                                  color: isDark
                                       ? const Color(0xFFF1F5F9).withOpacity(0.7)
                                       : Colors.grey.shade700,
                                 ),
@@ -424,7 +424,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                   alert.timeRange!,
                                   style: TextStyle(
                                     fontSize: 12,
-                                    color: isDark 
+                                    color: isDark
                                         ? const Color(0xFF3B82F6) // Bright Blue
                                         : Colors.grey.shade600,
                                     fontStyle: FontStyle.italic,
@@ -444,7 +444,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: Text(
                   'View all ${alerts.length} alerts',
                   style: TextStyle(
-                    color: isDark 
+                    color: isDark
                         ? const Color(0xFF3B82F6) // Bright Blue
                         : Colors.orange.shade700,
                   ),
@@ -650,7 +650,8 @@ class _HomeScreenState extends State<HomeScreen> {
                         icon: const Icon(Icons.timer),
                         label: const Text('TIMER'),
                         style: OutlinedButton.styleFrom(
-                          foregroundColor: theme.colorScheme.primary, // Bright Blue
+                          foregroundColor:
+                              theme.colorScheme.primary, // Bright Blue
                         ),
                       ),
                     ),
@@ -675,7 +676,8 @@ class _HomeScreenState extends State<HomeScreen> {
                         icon: const Icon(Icons.clear),
                         label: const Text('CLEAR'),
                         style: OutlinedButton.styleFrom(
-                          foregroundColor: theme.colorScheme.error, // Red accent
+                          foregroundColor:
+                              theme.colorScheme.error, // Red accent
                         ),
                       ),
                     ),

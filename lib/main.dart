@@ -77,7 +77,7 @@ class FindMyCarApp extends StatelessWidget {
           elevation: 0,
         ),
       ),
-      themeMode: ThemeMode.system,
+      themeMode: ThemeMode.dark, // Force dark mode to show new color scheme
       home: const HomeScreen(),
     );
   }
