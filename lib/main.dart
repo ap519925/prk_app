@@ -52,11 +52,11 @@ class FindMyCarApp extends StatelessWidget {
         ),
         scaffoldBackgroundColor: const Color(0xFF0F172A), // Slate 900
         useMaterial3: true,
-        cardTheme: CardTheme(
-          color: const Color(0xFF1E293B), // Slate 800
+        cardTheme: const CardThemeData(
+          color: Color(0xFF1E293B), // Slate 800
           elevation: 8,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.all(Radius.circular(16)),
           ),
         ),
         elevatedButtonTheme: ElevatedButtonThemeData(

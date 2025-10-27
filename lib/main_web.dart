@@ -24,24 +24,24 @@ class PrkWebDemo extends StatelessWidget {
       ),
       darkTheme: ThemeData(
         colorScheme: const ColorScheme.dark(
-          primary: Color(0xFF3B82F6),        // Bright Blue
-          secondary: Color(0xFF10B981),       // Green
-          error: Color(0xFFEF4444),           // Red (Accent)
-          background: Color(0xFF0F172A),      // Slate 900
-          surface: Color(0xFF1E293B),        // Slate 800
-          onPrimary: Color(0xFFF1F5F9),      // Slate 100
-          onSecondary: Color(0xFFF1F5F9),    // Slate 100
-          onError: Color(0xFFF1F5F9),        // Slate 100
-          onBackground: Color(0xFFF1F5F9),    // Slate 100
-          onSurface: Color(0xFFF1F5F9),      // Slate 100
+          primary: Color(0xFF3B82F6), // Bright Blue
+          secondary: Color(0xFF10B981), // Green
+          error: Color(0xFFEF4444), // Red (Accent)
+          background: Color(0xFF0F172A), // Slate 900
+          surface: Color(0xFF1E293B), // Slate 800
+          onPrimary: Color(0xFFF1F5F9), // Slate 100
+          onSecondary: Color(0xFFF1F5F9), // Slate 100
+          onError: Color(0xFFF1F5F9), // Slate 100
+          onBackground: Color(0xFFF1F5F9), // Slate 100
+          onSurface: Color(0xFFF1F5F9), // Slate 100
         ),
         scaffoldBackgroundColor: const Color(0xFF0F172A), // Slate 900
         useMaterial3: true,
-        cardTheme: CardTheme(
-          color: const Color(0xFF1E293B), // Slate 800
+        cardTheme: const CardThemeData(
+          color: Color(0xFF1E293B), // Slate 800
           elevation: 8,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.all(Radius.circular(16)),
           ),
         ),
         appBarTheme: const AppBarTheme(
@@ -72,7 +72,7 @@ class _WebDemoScreenState extends State<WebDemoScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Prk - Find My Car'),
@@ -95,7 +95,8 @@ class _WebDemoScreenState extends State<WebDemoScreen> {
                 ),
                 child: Column(
                   children: [
-                    Icon(Icons.info_outline, color: Colors.orange.shade700, size: 32),
+                    Icon(Icons.info_outline,
+                        color: Colors.orange.shade700, size: 32),
                     const SizedBox(height: 8),
                     Text(
                       '🌐 Web Demo Mode',
@@ -132,7 +133,7 @@ class _WebDemoScreenState extends State<WebDemoScreen> {
                   ],
                 ),
               ),
-              
+
               const SizedBox(height: 32),
 
               // Status card
@@ -175,7 +176,8 @@ class _WebDemoScreenState extends State<WebDemoScreen> {
                         Text(
                           'Saved just now',
                           style: theme.textTheme.bodySmall?.copyWith(
-                            color: theme.textTheme.bodySmall?.color?.withOpacity(0.6),
+                            color: theme.textTheme.bodySmall?.color
+                                ?.withOpacity(0.6),
                           ),
                         ),
                       ],
@@ -183,7 +185,7 @@ class _WebDemoScreenState extends State<WebDemoScreen> {
                   ),
                 ),
                 const SizedBox(height: 16),
-                
+
                 // Sample alerts
                 if (_alerts.isNotEmpty) ...[
                   Card(
@@ -196,8 +198,8 @@ class _WebDemoScreenState extends State<WebDemoScreen> {
                         children: [
                           Row(
                             children: [
-                              Icon(Icons.warning_amber_rounded, 
-                                   color: Colors.orange.shade700),
+                              Icon(Icons.warning_amber_rounded,
+                                  color: Colors.orange.shade700),
                               const SizedBox(width: 8),
                               Text(
                                 'Parking Alerts',
@@ -210,45 +212,46 @@ class _WebDemoScreenState extends State<WebDemoScreen> {
                           ),
                           const SizedBox(height: 12),
                           ..._alerts.map((alert) => Padding(
-                            padding: const EdgeInsets.only(bottom: 8.0),
-                            child: Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(alert['emoji'], 
-                                     style: const TextStyle(fontSize: 20)),
-                                const SizedBox(width: 8),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        alert['title'],
-                                        style: const TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                      Text(
-                                        alert['description'],
-                                        style: TextStyle(
-                                          fontSize: 13,
-                                          color: Colors.grey.shade700,
-                                        ),
-                                      ),
-                                      if (alert['timeRange'] != null)
-                                        Text(
-                                          alert['timeRange'],
-                                          style: TextStyle(
-                                            fontSize: 12,
-                                            color: Colors.grey.shade600,
-                                            fontStyle: FontStyle.italic,
+                                padding: const EdgeInsets.only(bottom: 8.0),
+                                child: Row(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(alert['emoji'],
+                                        style: const TextStyle(fontSize: 20)),
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            alert['title'],
+                                            style: const TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                            ),
                                           ),
-                                        ),
-                                    ],
-                                  ),
+                                          Text(
+                                            alert['description'],
+                                            style: TextStyle(
+                                              fontSize: 13,
+                                              color: Colors.grey.shade700,
+                                            ),
+                                          ),
+                                          if (alert['timeRange'] != null)
+                                            Text(
+                                              alert['timeRange'],
+                                              style: TextStyle(
+                                                fontSize: 12,
+                                                color: Colors.grey.shade600,
+                                                fontStyle: FontStyle.italic,
+                                              ),
+                                            ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
                                 ),
-                              ],
-                            ),
-                          )),
+                              )),
                         ],
                       ),
                     ),
@@ -336,7 +339,7 @@ class _WebDemoScreenState extends State<WebDemoScreen> {
               ],
 
               const SizedBox(height: 32),
-              
+
               // Download CTA
               Container(
                 padding: const EdgeInsets.all(20),
@@ -374,7 +377,8 @@ class _WebDemoScreenState extends State<WebDemoScreen> {
                       onPressed: () {
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
-                            content: Text('Mobile app coming soon to iOS & Android!'),
+                            content: Text(
+                                'Mobile app coming soon to iOS & Android!'),
                           ),
                         );
                       },
@@ -440,7 +444,8 @@ class _WebDemoScreenState extends State<WebDemoScreen> {
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('✓ Demo parking spot saved! ${_alerts.length} parking alerts found.'),
+        content: Text(
+            '✓ Demo parking spot saved! ${_alerts.length} parking alerts found.'),
         backgroundColor: Colors.green,
         duration: const Duration(seconds: 3),
       ),
@@ -456,7 +461,7 @@ class _WebDemoScreenState extends State<WebDemoScreen> {
             SizedBox(width: 8),
             Expanded(
               child: Text('Opening Google Maps... (Demo mode)\n'
-                          'On mobile, this opens your navigation app'),
+                  'On mobile, this opens your navigation app'),
             ),
           ],
         ),
@@ -488,4 +493,3 @@ class _WebDemoScreenState extends State<WebDemoScreen> {
     );
   }
 }
-
