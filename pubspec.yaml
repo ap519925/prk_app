@@ -1,0 +1,42 @@
+name: find_my_car
+description: A simple app to save and find your parking spot
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  
+  # Location services
+  geolocator: ^10.1.0
+  geocoding: ^2.1.1
+  
+  # Maps
+  google_maps_flutter: ^2.5.0
+  
+  # Navigation
+  url_launcher: ^6.2.1
+  
+  # Local storage
+  shared_preferences: ^2.2.2
+  
+  # Camera for parking spot photos
+  image_picker: ^1.0.4
+  
+  # Permissions
+  permission_handler: ^11.0.1
+  
+  # Icons
+  cupertino_icons: ^1.0.6
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+
+flutter:
+  uses-material-design: true
+
