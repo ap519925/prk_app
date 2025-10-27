@@ -339,10 +339,21 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildAlertsSection(ThemeData theme) {
     final alerts = _parkingSpot!.alerts!;
-
-    return Card(
-      elevation: 2,
-      color: Colors.orange.shade50,
+    final isDark = theme.brightness == Brightness.dark;
+    
+    return Container(
+      decoration: BoxDecoration(
+        color: isDark 
+            ? const Color(0xFF1E293B).withOpacity(0.6) // Slate 800
+            : Colors.orange.shade50,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: isDark 
+              ? const Color(0xFF3B82F6).withOpacity(0.3) // Bright Blue border
+              : Colors.orange.shade200,
+          width: 2,
+        ),
+      ),
       child: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -350,14 +361,20 @@ class _HomeScreenState extends State<HomeScreen> {
           children: [
             Row(
               children: [
-                Icon(Icons.warning_amber_rounded,
-                    color: Colors.orange.shade700),
+                Icon(
+                  Icons.warning_amber_rounded,
+                  color: isDark 
+                      ? const Color(0xFFEF4444) // Red accent
+                      : Colors.orange.shade700,
+                ),
                 const SizedBox(width: 8),
                 Text(
                   'Parking Alerts',
                   style: theme.textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.bold,
-                    color: Colors.orange.shade900,
+                    color: isDark 
+                        ? const Color(0xFFF1F5F9) // Slate 100
+                        : Colors.orange.shade900,
                   ),
                 ),
               ],
@@ -365,46 +382,73 @@ class _HomeScreenState extends State<HomeScreen> {
             const SizedBox(height: 12),
             ...alerts.take(3).map((alert) => Padding(
                   padding: const EdgeInsets.only(bottom: 8.0),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(alert.emoji, style: const TextStyle(fontSize: 20)),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              alert.title,
-                              style:
-                                  const TextStyle(fontWeight: FontWeight.bold),
-                            ),
-                            Text(
-                              alert.description,
-                              style: TextStyle(
-                                fontSize: 13,
-                                color: Colors.grey.shade700,
-                              ),
-                            ),
-                            if (alert.timeRange != null)
+                  child: Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: isDark 
+                          ? const Color(0xFF0F172A) // Slate 900
+                          : Colors.white,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(alert.emoji, style: const TextStyle(fontSize: 20)),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
                               Text(
-                                alert.timeRange!,
+                                alert.title,
                                 style: TextStyle(
-                                  fontSize: 12,
-                                  color: Colors.grey.shade600,
-                                  fontStyle: FontStyle.italic,
+                                  fontWeight: FontWeight.bold,
+                                  color: isDark 
+                                      ? const Color(0xFFF1F5F9) // Slate 100
+                                      : Colors.black87,
                                 ),
                               ),
-                          ],
+                              const SizedBox(height: 4),
+                              Text(
+                                alert.description,
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  color: isDark 
+                                      ? const Color(0xFFF1F5F9).withOpacity(0.7)
+                                      : Colors.grey.shade700,
+                                ),
+                              ),
+                              if (alert.timeRange != null) ...[
+                                const SizedBox(height: 4),
+                                Text(
+                                  alert.timeRange!,
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: isDark 
+                                        ? const Color(0xFF3B82F6) // Bright Blue
+                                        : Colors.grey.shade600,
+                                    fontStyle: FontStyle.italic,
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 )),
             if (alerts.length > 3)
               TextButton(
                 onPressed: _viewDetails,
-                child: Text('View all ${alerts.length} alerts'),
+                child: Text(
+                  'View all ${alerts.length} alerts',
+                  style: TextStyle(
+                    color: isDark 
+                        ? const Color(0xFF3B82F6) // Bright Blue
+                        : Colors.orange.shade700,
+                  ),
+                ),
               ),
           ],
         ),
@@ -576,11 +620,15 @@ class _HomeScreenState extends State<HomeScreen> {
                 icon: const Icon(Icons.navigation, size: 32),
                 label: const Text('FIND MY CAR'),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.green,
-                  foregroundColor: Colors.white,
+                  backgroundColor: theme.colorScheme.secondary, // Green
+                  foregroundColor: theme.colorScheme.onSecondary,
                   minimumSize: const Size.fromHeight(70),
-                  disabledBackgroundColor: Colors.grey.shade300,
-                  disabledForegroundColor: Colors.grey.shade500,
+                  disabledBackgroundColor: theme.brightness == Brightness.dark
+                      ? const Color(0xFF1E293B)
+                      : Colors.grey.shade300,
+                  disabledForegroundColor: theme.brightness == Brightness.dark
+                      ? const Color(0xFFF1F5F9).withOpacity(0.3)
+                      : Colors.grey.shade500,
                 ),
               ),
 
@@ -602,7 +650,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         icon: const Icon(Icons.timer),
                         label: const Text('TIMER'),
                         style: OutlinedButton.styleFrom(
-                          foregroundColor: Colors.blue,
+                          foregroundColor: theme.colorScheme.primary, // Bright Blue
                         ),
                       ),
                     ),
@@ -627,7 +675,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         icon: const Icon(Icons.clear),
                         label: const Text('CLEAR'),
                         style: OutlinedButton.styleFrom(
-                          foregroundColor: Colors.red,
+                          foregroundColor: theme.colorScheme.error, // Red accent
                         ),
                       ),
                     ),
