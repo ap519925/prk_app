@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
 import '../models/parking_spot.dart';
@@ -222,9 +223,14 @@ class _HomeScreenRedesignState extends State<HomeScreenRedesign>
                     ] else ...[
                       _buildParkingInfo(),
                       const SizedBox(height: 20),
-                      // Mini map preview
-                      MiniMapPreview(parkingSpot: _parkingSpot!),
-                      const SizedBox(height: 20),
+                      // Mini map preview (mobile only - web doesn't support Google Maps)
+                      if (!kIsWeb) ...[
+                        MiniMapPreview(parkingSpot: _parkingSpot!),
+                        const SizedBox(height: 20),
+                      ] else ...[
+                        _buildWebMapPlaceholder(),
+                        const SizedBox(height: 20),
+                      ],
                       if (_parkingSpot!.alerts != null &&
                           _parkingSpot!.alerts!.isNotEmpty)
                         _buildAlertsCard(),
@@ -390,15 +396,16 @@ class _HomeScreenRedesignState extends State<HomeScreenRedesign>
           const SizedBox(height: 16),
           Row(
             children: [
-              Expanded(
-                child: _buildQuickAction(
-                  icon: Icons.map_outlined,
-                  label: 'Map',
-                  color: const Color(0xFF3B82F6),
-                  onTap: _openMap,
+              if (!kIsWeb)
+                Expanded(
+                  child: _buildQuickAction(
+                    icon: Icons.map_outlined,
+                    label: 'Map',
+                    color: const Color(0xFF3B82F6),
+                    onTap: _openMap,
+                  ),
                 ),
-              ),
-              const SizedBox(width: 12),
+              if (!kIsWeb) const SizedBox(width: 12),
               Expanded(
                 child: _buildQuickAction(
                   icon: Icons.camera_alt_outlined,
@@ -651,6 +658,64 @@ class _HomeScreenRedesignState extends State<HomeScreenRedesign>
     } else {
       return 'just now';
     }
+  }
+
+  Widget _buildWebMapPlaceholder() {
+    return Container(
+      height: 200,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: const Color(0xFF3B82F6).withOpacity(0.3),
+          width: 2,
+        ),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            const Color(0xFF1E293B).withOpacity(0.6),
+            const Color(0xFF0F172A).withOpacity(0.6),
+          ],
+        ),
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Icon(
+            Icons.map,
+            size: 64,
+            color: Color(0xFF3B82F6),
+          ),
+          const SizedBox(height: 16),
+          const Text(
+            '🗺️ Interactive Map',
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFFF1F5F9),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Available on mobile app',
+            style: TextStyle(
+              fontSize: 14,
+              color: const Color(0xFFF1F5F9).withOpacity(0.6),
+            ),
+          ),
+          const SizedBox(height: 4),
+          if (_parkingSpot != null)
+            Text(
+              '${_parkingSpot!.latitude.toStringAsFixed(6)}, ${_parkingSpot!.longitude.toStringAsFixed(6)}',
+              style: TextStyle(
+                fontSize: 12,
+                color: const Color(0xFF3B82F6).withOpacity(0.8),
+                fontFamily: 'monospace',
+              ),
+            ),
+        ],
+      ),
+    ).animate().fadeIn(duration: 600.ms).scale(begin: const Offset(0.95, 0.95));
   }
 }
 
