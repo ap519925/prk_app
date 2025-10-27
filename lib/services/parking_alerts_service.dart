@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:geocoding/geocoding.dart';
 import '../models/parking_alert.dart';
+import 'nyc_parking_service.dart';
 
 class ParkingAlertsService {
   static final ParkingAlertsService instance = ParkingAlertsService._();
@@ -25,15 +26,28 @@ class ParkingAlertsService {
       // Fetch parking rules from multiple sources
       final alerts = <ParkingAlert>[];
 
-      // 1. Check OpenStreetMap for parking restrictions
+      // 1. NYC Open Data (highest priority for NYC locations)
+      if (city?.toLowerCase().contains('new york') == true || 
+          NYCParkingService.instance.isInNYC(latitude, longitude)) {
+        print('Location is in NYC - fetching official parking data...');
+        final nycAlerts = await NYCParkingService.instance.getParkingRegulations(
+          latitude: latitude,
+          longitude: longitude,
+          radiusMeters: 200,
+        );
+        alerts.addAll(nycAlerts);
+        print('Found ${nycAlerts.length} NYC parking regulations');
+      }
+
+      // 2. Check OpenStreetMap for parking restrictions (fallback/supplement)
       final osmAlerts = await _getOSMParkingRestrictions(latitude, longitude);
       alerts.addAll(osmAlerts);
 
-      // 2. Add city-specific rules (can be expanded with real APIs)
+      // 3. Add city-specific rules (can be expanded with real APIs)
       final cityAlerts = await _getCitySpecificAlerts(city, state, latitude, longitude);
       alerts.addAll(cityAlerts);
 
-      // 3. Check for weather-related restrictions
+      // 4. Check for weather-related restrictions
       final weatherAlerts = await _getWeatherBasedAlerts(city, state);
       alerts.addAll(weatherAlerts);
 

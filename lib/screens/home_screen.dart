@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:find_my_car/models/parking_spot.dart';
-import 'package:find_my_car/models/parking_alert.dart';
 import 'package:find_my_car/services/location_service.dart';
 import 'package:find_my_car/services/storage_service.dart';
 import 'package:find_my_car/services/navigation_service.dart';
@@ -8,6 +7,7 @@ import 'package:find_my_car/services/parking_alerts_service.dart';
 import 'package:find_my_car/services/notification_service.dart';
 import 'package:find_my_car/screens/map_screen.dart';
 import 'package:find_my_car/screens/parking_details_screen.dart';
+import 'package:find_my_car/widgets/mini_map_widget.dart';
 import 'package:image_picker/image_picker.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -47,12 +47,13 @@ class _HomeScreenState extends State<HomeScreen> {
 
     try {
       final position = await LocationService.instance.getCurrentLocation();
-      
+
       if (position == null) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('Unable to get your location. Please enable location services.'),
+              content: Text(
+                  'Unable to get your location. Please enable location services.'),
               backgroundColor: Colors.red,
             ),
           );
@@ -68,7 +69,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
       // Fetch parking alerts
       setState(() => _loadingAlerts = true);
-      final alertsResponse = await ParkingAlertsService.instance.getParkingAlerts(
+      final alertsResponse =
+          await ParkingAlertsService.instance.getParkingAlerts(
         position.latitude,
         position.longitude,
       );
@@ -88,7 +90,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
       // Show alert summary if there are any alerts
       if (alertsResponse.alerts.isNotEmpty) {
-        await NotificationService.instance.showAlertSummary(alertsResponse.alerts);
+        await NotificationService.instance
+            .showAlertSummary(alertsResponse.alerts);
       }
 
       if (mounted) {
@@ -189,7 +192,7 @@ class _HomeScreenState extends State<HomeScreen> {
       );
 
       await StorageService.instance.saveParkingSpot(updatedSpot);
-      
+
       if (mounted) {
         setState(() {
           _parkingSpot = updatedSpot;
@@ -312,7 +315,7 @@ class _HomeScreenState extends State<HomeScreen> {
       );
 
       await StorageService.instance.saveParkingSpot(updatedSpot);
-      
+
       // Schedule notifications
       await NotificationService.instance.scheduleTimerNotifications(
         expirationTime: selected,
@@ -336,7 +339,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildAlertsSection(ThemeData theme) {
     final alerts = _parkingSpot!.alerts!;
-    
+
     return Card(
       elevation: 2,
       color: Colors.orange.shade50,
@@ -347,7 +350,8 @@ class _HomeScreenState extends State<HomeScreen> {
           children: [
             Row(
               children: [
-                Icon(Icons.warning_amber_rounded, color: Colors.orange.shade700),
+                Icon(Icons.warning_amber_rounded,
+                    color: Colors.orange.shade700),
                 const SizedBox(width: 8),
                 Text(
                   'Parking Alerts',
@@ -360,42 +364,43 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
             const SizedBox(height: 12),
             ...alerts.take(3).map((alert) => Padding(
-              padding: const EdgeInsets.only(bottom: 8.0),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(alert.emoji, style: const TextStyle(fontSize: 20)),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          alert.title,
-                          style: const TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                        Text(
-                          alert.description,
-                          style: TextStyle(
-                            fontSize: 13,
-                            color: Colors.grey.shade700,
-                          ),
-                        ),
-                        if (alert.timeRange != null)
-                          Text(
-                            alert.timeRange!,
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Colors.grey.shade600,
-                              fontStyle: FontStyle.italic,
+                  padding: const EdgeInsets.only(bottom: 8.0),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(alert.emoji, style: const TextStyle(fontSize: 20)),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              alert.title,
+                              style:
+                                  const TextStyle(fontWeight: FontWeight.bold),
                             ),
-                          ),
-                      ],
-                    ),
+                            Text(
+                              alert.description,
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: Colors.grey.shade700,
+                              ),
+                            ),
+                            if (alert.timeRange != null)
+                              Text(
+                                alert.timeRange!,
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.grey.shade600,
+                                  fontStyle: FontStyle.italic,
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
-                ],
-              ),
-            )),
+                )),
             if (alerts.length > 3)
               TextButton(
                 onPressed: _viewDetails,
@@ -477,7 +482,8 @@ class _HomeScreenState extends State<HomeScreen> {
                         Text(
                           'Saved ${_getTimeAgo(_parkingSpot!.savedAt)}',
                           style: theme.textTheme.bodySmall?.copyWith(
-                            color: theme.textTheme.bodySmall?.color?.withOpacity(0.6),
+                            color: theme.textTheme.bodySmall?.color
+                                ?.withOpacity(0.6),
                           ),
                         ),
                         if (_parkingSpot!.photoPath != null) ...[
@@ -485,7 +491,8 @@ class _HomeScreenState extends State<HomeScreen> {
                           Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Icon(Icons.photo_camera, size: 16, color: Colors.blue),
+                              Icon(Icons.photo_camera,
+                                  size: 16, color: Colors.blue),
                               const SizedBox(width: 4),
                               Text(
                                 'Photo attached',
@@ -505,9 +512,14 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ),
                 const SizedBox(height: 16),
-                
+
+                // Mini Map
+                MiniMapWidget(parkingSpot: _parkingSpot!),
+                const SizedBox(height: 16),
+
                 // Parking Alerts Section
-                if (_parkingSpot!.alerts != null && _parkingSpot!.alerts!.isNotEmpty) ...[
+                if (_parkingSpot!.alerts != null &&
+                    _parkingSpot!.alerts!.isNotEmpty) ...[
                   _buildAlertsSection(theme),
                   const SizedBox(height: 16),
                 ],
@@ -599,7 +611,8 @@ class _HomeScreenState extends State<HomeScreen> {
                       child: OutlinedButton.icon(
                         onPressed: () async {
                           await StorageService.instance.deleteParkingSpot();
-                          await NotificationService.instance.cancelAllNotifications();
+                          await NotificationService.instance
+                              .cancelAllNotifications();
                           setState(() {
                             _parkingSpot = null;
                           });
@@ -645,4 +658,3 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 }
-
