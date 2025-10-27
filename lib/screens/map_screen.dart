@@ -439,10 +439,13 @@ class _MapScreenState extends State<MapScreen> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final theme = Theme.of(context);
 
     return Scaffold(
+      backgroundColor: theme.colorScheme.background,
       appBar: AppBar(
         title: const Text('Parking Location'),
+        backgroundColor: theme.colorScheme.surface,
         actions: [
           IconButton(
             icon: Icon(_currentMapType == MapType.normal
@@ -490,32 +493,48 @@ class _MapScreenState extends State<MapScreen> {
                     top: 16,
                     left: 16,
                     right: 16,
-                    child: Card(
-                      child: Padding(
-                        padding: const EdgeInsets.all(16.0),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Row(
-                              children: [
-                                const Icon(Icons.straighten,
-                                    color: Colors.blue),
-                                const SizedBox(width: 8),
-                                Text(
-                                  _formatDistance(_distanceInMeters!),
-                                  style: const TextStyle(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            Text(
-                              'to your car',
-                              style: TextStyle(color: Colors.grey.shade600),
-                            ),
-                          ],
+                    child: Container(
+                      padding: const EdgeInsets.all(16.0),
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.surface,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: theme.colorScheme.primary.withOpacity(0.3),
+                          width: 2,
                         ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: theme.colorScheme.primary.withOpacity(0.2),
+                            blurRadius: 12,
+                            spreadRadius: 0,
+                          ),
+                        ],
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(Icons.straighten,
+                                  color: theme.colorScheme.primary),
+                              const SizedBox(width: 8),
+                              Text(
+                                _formatDistance(_distanceInMeters!),
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                  color: theme.colorScheme.onSurface,
+                                ),
+                              ),
+                            ],
+                          ),
+                          Text(
+                            'to your car',
+                            style: TextStyle(
+                              color: theme.colorScheme.onSurface.withOpacity(0.6),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ),
@@ -529,6 +548,7 @@ class _MapScreenState extends State<MapScreen> {
                       FloatingActionButton(
                         heroTag: 'parking',
                         mini: true,
+                        backgroundColor: theme.colorScheme.primary,
                         onPressed: _centerOnParking,
                         child: const Icon(Icons.directions_car),
                       ),
@@ -537,6 +557,7 @@ class _MapScreenState extends State<MapScreen> {
                         FloatingActionButton(
                           heroTag: 'location',
                           mini: true,
+                          backgroundColor: theme.colorScheme.secondary,
                           onPressed: _centerOnCurrentLocation,
                           child: const Icon(Icons.my_location),
                         ),
@@ -549,25 +570,50 @@ class _MapScreenState extends State<MapScreen> {
                   bottom: 16,
                   left: 16,
                   right: 16,
-                  child: ElevatedButton.icon(
-                    onPressed: () async {
-                      await NavigationService.instance.openNavigation(
-                        widget.parkingSpot.latitude,
-                        widget.parkingSpot.longitude,
-                      );
-                    },
-                    icon: const Icon(Icons.navigation, size: 28),
-                    label: const Text(
-                      'START NAVIGATION',
-                      style:
-                          TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                    ),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.green,
-                      foregroundColor: Colors.white,
-                      minimumSize: const Size.fromHeight(56),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
+                  child: Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      onTap: () async {
+                        await NavigationService.instance.openNavigation(
+                          widget.parkingSpot.latitude,
+                          widget.parkingSpot.longitude,
+                        );
+                      },
+                      borderRadius: BorderRadius.circular(20),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(vertical: 18),
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [
+                              theme.colorScheme.secondary,
+                              theme.colorScheme.secondary.withOpacity(0.8),
+                            ],
+                          ),
+                          borderRadius: BorderRadius.circular(20),
+                          boxShadow: [
+                            BoxShadow(
+                              color: theme.colorScheme.secondary.withOpacity(0.4),
+                              blurRadius: 20,
+                              offset: const Offset(0, 10),
+                            ),
+                          ],
+                        ),
+                        child: const Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.navigation, size: 28, color: Colors.white),
+                            SizedBox(width: 12),
+                            Text(
+                              'START NAVIGATION',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                                letterSpacing: 1,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ),

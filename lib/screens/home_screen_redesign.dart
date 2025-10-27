@@ -9,6 +9,7 @@ import '../services/navigation_service.dart';
 import '../services/parking_alerts_service.dart';
 import '../services/notification_service.dart';
 import '../screens/map_screen.dart';
+import '../widgets/mini_map_preview.dart';
 import 'package:image_picker/image_picker.dart';
 
 class HomeScreenRedesign extends StatefulWidget {
@@ -223,6 +224,9 @@ class _HomeScreenRedesignState extends State<HomeScreenRedesign>
                       _buildEmptyState(),
                     ] else ...[
                       _buildParkingInfo(),
+                      const SizedBox(height: 20),
+                      // Mini map preview
+                      MiniMapPreview(parkingSpot: _parkingSpot!),
                       const SizedBox(height: 20),
                       if (_parkingSpot!.alerts != null &&
                           _parkingSpot!.alerts!.isNotEmpty)
