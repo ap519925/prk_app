@@ -56,28 +56,46 @@ class _HomeScreenRedesignState extends State<HomeScreenRedesign>
     setState(() => _isLoading = true);
 
     try {
-      final position = await LocationService.instance.getCurrentLocation();
+      double latitude;
+      double longitude;
+      String? address;
 
-      if (position == null) {
-        if (mounted) {
-          _showSnackBar('Unable to get location', isError: true);
+      // On web, use mock NYC location since GPS is unreliable
+      if (kIsWeb) {
+        // Times Square coordinates
+        latitude = 40.7589;
+        longitude = -73.9851;
+        address = 'Times Square, New York, NY (Web Demo)';
+      } else {
+        // On mobile, get actual GPS location
+        final position = await LocationService.instance.getCurrentLocation().timeout(
+          const Duration(seconds: 10),
+          onTimeout: () => null,
+        );
+
+        if (position == null) {
+          if (mounted) {
+            _showSnackBar('Unable to get location. Check permissions.', isError: true);
+          }
+          return;
         }
-        return;
+
+        latitude = position.latitude;
+        longitude = position.longitude;
+        address = await LocationService.instance.getAddressFromCoordinates(
+          latitude,
+          longitude,
+        );
       }
 
-      final address = await LocationService.instance.getAddressFromCoordinates(
-        position.latitude,
-        position.longitude,
-      );
-
       final alertsResponse = await ParkingAlertsService.instance.getParkingAlerts(
-        position.latitude,
-        position.longitude,
+        latitude,
+        longitude,
       );
 
       final spot = ParkingSpot(
-        latitude: position.latitude,
-        longitude: position.longitude,
+        latitude: latitude,
+        longitude: longitude,
         savedAt: DateTime.now(),
         address: address,
         alerts: alertsResponse.alerts,
@@ -87,20 +105,24 @@ class _HomeScreenRedesignState extends State<HomeScreenRedesign>
 
       await StorageService.instance.saveParkingSpot(spot);
 
-      if (alertsResponse.alerts.isNotEmpty) {
+      if (alertsResponse.alerts.isNotEmpty && !kIsWeb) {
+        // Notifications don't work on web
         await NotificationService.instance.showAlertSummary(alertsResponse.alerts);
       }
 
       if (mounted) {
         setState(() => _parkingSpot = spot);
         _showSnackBar(
-          '✓ Parking spot saved! ${alertsResponse.alerts.length} alerts found',
+          kIsWeb 
+            ? '✓ Demo spot saved! ${alertsResponse.alerts.length} NYC alerts found'
+            : '✓ Parking spot saved! ${alertsResponse.alerts.length} alerts found',
           isError: false,
         );
       }
     } catch (e) {
+      print('Error saving parking spot: $e');
       if (mounted) {
-        _showSnackBar('Error: $e', isError: true);
+        _showSnackBar('Error: ${e.toString()}', isError: true);
       }
     } finally {
       if (mounted) {
