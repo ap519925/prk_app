@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import 'package:shimmer/shimmer.dart';
 import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
 import '../models/parking_spot.dart';
 import '../services/location_service.dart';
@@ -10,7 +9,6 @@ import '../services/parking_alerts_service.dart';
 import '../services/notification_service.dart';
 import '../screens/map_screen.dart';
 import '../widgets/mini_map_preview.dart';
-import 'package:image_picker/image_picker.dart';
 
 class HomeScreenRedesign extends StatefulWidget {
   const HomeScreenRedesign({super.key});
@@ -156,7 +154,6 @@ class _HomeScreenRedesignState extends State<HomeScreenRedesign>
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final hasSpot = _parkingSpot != null;
 
     return Scaffold(
