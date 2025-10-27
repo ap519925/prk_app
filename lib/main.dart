@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:find_my_car/screens/home_screen.dart';
+import 'package:find_my_car/screens/home_screen_redesign.dart';
 import 'package:find_my_car/services/location_service.dart';
 import 'package:find_my_car/services/notification_service.dart';
 
@@ -78,7 +78,7 @@ class FindMyCarApp extends StatelessWidget {
         ),
       ),
       themeMode: ThemeMode.dark, // Force dark mode to show new color scheme
-      home: const HomeScreen(),
+      home: const HomeScreenRedesign(),
     );
   }
 }
