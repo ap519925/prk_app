@@ -13,7 +13,12 @@ class LocationService {
   Future<bool> checkPermissions() async {
     bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) {
-      return false;
+      // Attempt to prompt the user to enable location services
+      await Geolocator.openLocationSettings();
+      serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) {
+        return false;
+      }
     }
 
     LocationPermission permission = await Geolocator.checkPermission();
@@ -44,6 +49,14 @@ class LocationService {
       print('Error getting location: $e');
       return null;
     }
+  }
+
+  Stream<Position> getPositionStream({LocationAccuracy accuracy = LocationAccuracy.best}) {
+    final locationSettings = LocationSettings(
+      accuracy: accuracy,
+      distanceFilter: 5, // meters
+    );
+    return Geolocator.getPositionStream(locationSettings: locationSettings);
   }
 
   Future<String?> getAddressFromCoordinates(double lat, double lon) async {

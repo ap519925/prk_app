@@ -21,9 +21,10 @@ class MapScreen extends StatefulWidget {
 class _MapScreenState extends State<MapScreen> {
   final Completer<GoogleMapController> _controller = Completer();
   Position? _currentPosition;
-  Set<Marker> _markers = {};
-  Set<Polyline> _polylines = {};
-  Set<Circle> _circles = {};
+  StreamSubscription<Position>? _positionSubscription;
+  final Set<Marker> _markers = {};
+  final Set<Polyline> _polylines = {};
+  final Set<Circle> _circles = {};
   bool _isLoading = true;
   double? _distanceInMeters;
   MapType _currentMapType = MapType.normal;
@@ -159,6 +160,9 @@ class _MapScreenState extends State<MapScreen> {
 
       // Animate to show both markers
       _animateToFitMarkers();
+
+      // Start listening to live location updates
+      _startPositionStream();
     } catch (e) {
       print('Error initializing map: $e');
       setState(() => _isLoading = false);
@@ -244,6 +248,44 @@ class _MapScreenState extends State<MapScreen> {
         ),
       );
     }
+  }
+
+  void _startPositionStream() {
+    _positionSubscription?.cancel();
+    _positionSubscription = LocationService.instance
+        .getPositionStream(accuracy: LocationAccuracy.best)
+        .listen((position) async {
+      setState(() {
+        _currentPosition = position;
+        _distanceInMeters = LocationService.instance.calculateDistance(
+          position.latitude,
+          position.longitude,
+          widget.parkingSpot.latitude,
+          widget.parkingSpot.longitude,
+        );
+      });
+
+      await _createMarkers();
+      _updatePolyline();
+    }, onError: (e) {
+      print('Location stream error: $e');
+    });
+  }
+
+  void _updatePolyline() {
+    _polylines.clear();
+    if (_currentPosition == null) return;
+    _polylines.add(
+      Polyline(
+        polylineId: const PolylineId('to_parking'),
+        points: [
+          LatLng(_currentPosition!.latitude, _currentPosition!.longitude),
+          LatLng(widget.parkingSpot.latitude, widget.parkingSpot.longitude),
+        ],
+        width: 5,
+        color: Colors.blueAccent.withOpacity(0.7),
+      ),
+    );
   }
 
   LatLngBounds _calculateBounds() {
@@ -442,7 +484,7 @@ class _MapScreenState extends State<MapScreen> {
     final theme = Theme.of(context);
 
     return Scaffold(
-      backgroundColor: theme.colorScheme.background,
+      backgroundColor: theme.colorScheme.surface,
       appBar: AppBar(
         title: const Text('Parking Location'),
         backgroundColor: theme.colorScheme.surface,
@@ -531,7 +573,8 @@ class _MapScreenState extends State<MapScreen> {
                           Text(
                             'to your car',
                             style: TextStyle(
-                              color: theme.colorScheme.onSurface.withOpacity(0.6),
+                              color:
+                                  theme.colorScheme.onSurface.withOpacity(0.6),
                             ),
                           ),
                         ],
@@ -592,7 +635,8 @@ class _MapScreenState extends State<MapScreen> {
                           borderRadius: BorderRadius.circular(20),
                           boxShadow: [
                             BoxShadow(
-                              color: theme.colorScheme.secondary.withOpacity(0.4),
+                              color:
+                                  theme.colorScheme.secondary.withOpacity(0.4),
                               blurRadius: 20,
                               offset: const Offset(0, 10),
                             ),
@@ -601,7 +645,8 @@ class _MapScreenState extends State<MapScreen> {
                         child: const Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Icon(Icons.navigation, size: 28, color: Colors.white),
+                            Icon(Icons.navigation,
+                                size: 28, color: Colors.white),
                             SizedBox(width: 12),
                             Text(
                               'START NAVIGATION',
@@ -625,6 +670,7 @@ class _MapScreenState extends State<MapScreen> {
 
   @override
   void dispose() {
+    _positionSubscription?.cancel();
     super.dispose();
   }
 }

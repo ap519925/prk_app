@@ -60,35 +60,30 @@ class _HomeScreenRedesignState extends State<HomeScreenRedesign>
       double longitude;
       String? address;
 
-      // On web, use mock NYC location since GPS is unreliable
-      if (kIsWeb) {
-        // Times Square coordinates
-        latitude = 40.7589;
-        longitude = -73.9851;
-        address = 'Times Square, New York, NY (Web Demo)';
-      } else {
-        // On mobile, get actual GPS location
-        final position = await LocationService.instance.getCurrentLocation().timeout(
-          const Duration(seconds: 10),
-          onTimeout: () => null,
-        );
+      // Get actual GPS location on both mobile and web
+      final position =
+          await LocationService.instance.getCurrentLocation().timeout(
+                const Duration(seconds: 10),
+                onTimeout: () => null,
+              );
 
-        if (position == null) {
-          if (mounted) {
-            _showSnackBar('Unable to get location. Check permissions.', isError: true);
-          }
-          return;
+      if (position == null) {
+        if (mounted) {
+          _showSnackBar('Unable to get location. Check permissions.',
+              isError: true);
         }
-
-        latitude = position.latitude;
-        longitude = position.longitude;
-        address = await LocationService.instance.getAddressFromCoordinates(
-          latitude,
-          longitude,
-        );
+        return;
       }
 
-      final alertsResponse = await ParkingAlertsService.instance.getParkingAlerts(
+      latitude = position.latitude;
+      longitude = position.longitude;
+      address = await LocationService.instance.getAddressFromCoordinates(
+        latitude,
+        longitude,
+      );
+
+      final alertsResponse =
+          await ParkingAlertsService.instance.getParkingAlerts(
         latitude,
         longitude,
       );
@@ -107,15 +102,14 @@ class _HomeScreenRedesignState extends State<HomeScreenRedesign>
 
       if (alertsResponse.alerts.isNotEmpty && !kIsWeb) {
         // Notifications don't work on web
-        await NotificationService.instance.showAlertSummary(alertsResponse.alerts);
+        await NotificationService.instance
+            .showAlertSummary(alertsResponse.alerts);
       }
 
       if (mounted) {
         setState(() => _parkingSpot = spot);
         _showSnackBar(
-          kIsWeb 
-            ? '✓ Demo spot saved! ${alertsResponse.alerts.length} NYC alerts found'
-            : '✓ Parking spot saved! ${alertsResponse.alerts.length} alerts found',
+          '✓ Parking spot saved! ${alertsResponse.alerts.length} alerts found',
           isError: false,
         );
       }
@@ -148,9 +142,8 @@ class _HomeScreenRedesignState extends State<HomeScreenRedesign>
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
-        backgroundColor: isError
-            ? const Color(0xFFEF4444)
-            : const Color(0xFF10B981),
+        backgroundColor:
+            isError ? const Color(0xFFEF4444) : const Color(0xFF10B981),
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         margin: const EdgeInsets.all(16),
@@ -181,14 +174,14 @@ class _HomeScreenRedesignState extends State<HomeScreenRedesign>
 
     return Scaffold(
       body: Container(
-        decoration: BoxDecoration(
+        decoration: const BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: [
-              const Color(0xFF0F172A),
-              const Color(0xFF1E293B),
-              const Color(0xFF0F172A),
+              Color(0xFF0F172A),
+              Color(0xFF1E293B),
+              Color(0xFF0F172A),
             ],
           ),
         ),
@@ -301,9 +294,9 @@ class _HomeScreenRedesignState extends State<HomeScreenRedesign>
                 );
               },
             ),
-          )
-              .animate(onPlay: (controller) => controller.repeat())
-              .shimmer(duration: 2000.ms, color: const Color(0xFF3B82F6).withOpacity(0.3)),
+          ).animate(onPlay: (controller) => controller.repeat()).shimmer(
+              duration: 2000.ms,
+              color: const Color(0xFF3B82F6).withOpacity(0.3)),
           const SizedBox(height: 40),
           const Text(
             'No Parking Spot Saved',
@@ -501,15 +494,15 @@ class _HomeScreenRedesignState extends State<HomeScreenRedesign>
             child: FadeInAnimation(child: widget),
           ),
           children: [
-            Row(
+            const Row(
               children: [
-                const Icon(
+                Icon(
                   Icons.warning_amber_rounded,
                   color: Color(0xFFEF4444),
                   size: 24,
                 ),
-                const SizedBox(width: 8),
-                const Text(
+                SizedBox(width: 8),
+                Text(
                   'Parking Alerts',
                   style: TextStyle(
                     fontSize: 20,
@@ -740,4 +733,3 @@ class _HomeScreenRedesignState extends State<HomeScreenRedesign>
     ).animate().fadeIn(duration: 600.ms).scale(begin: const Offset(0.95, 0.95));
   }
 }
-
