@@ -80,11 +80,12 @@ flutter run -d ios
 2. **Mini Map Preview** - On home screen after saving parking
 3. **Exact Location Display** - GPS coordinates and address
 4. **Distance Calculation** - Real-time distance to car
-5. **Turn-by-turn Navigation** - Opens Google/Apple Maps
-6. **Custom Dark Theme** - Matches app colors
-7. **Parking Marker** - Red car icon
-8. **Current Location** - Blue marker
-9. **50m Radius Circle** - Visual parking area
+5. **🆕 Custom In-App Navigation** - Turn-by-turn directions with voice guidance
+6. **External Navigation** - Opens Google/Apple Maps as alternative
+7. **Custom Dark Theme** - Matches app colors
+8. **Parking Marker** - Red car icon
+9. **Current Location** - Blue marker with real-time tracking
+10. **Route Polyline** - Shows actual driving directions on map
 
 ### NYC Parking Features:
 1. **Official Parking Data** - From NYC Open Data API
@@ -149,8 +150,14 @@ When you first run the app:
 2. **Enable Required APIs**:
    - Maps SDK for Android ✓
    - Maps SDK for iOS ✓
+   - **Directions API** ✓ (REQUIRED for in-app navigation)
    - Geocoding API (recommended)
    - Places API (optional, for future features)
+
+   **Enable Directions API**:
+   - Go to: https://console.cloud.google.com/apis/library/directions-backend.googleapis.com
+   - Click "ENABLE"
+   - This enables turn-by-turn navigation features
 
 3. **Set Usage Limits**:
    - Set daily quotas to prevent overuse
@@ -314,5 +321,39 @@ Your app is now fully configured with:
 ---
 
 **Repository**: https://github.com/ap519925/prk_app
-**Last Updated**: October 27, 2025
+**Last Updated**: October 29, 2025
+
+---
+
+## 🆕 NEW: Custom In-App Navigation
+
+### Features Added:
+- **Turn-by-Turn Directions**: Real-time navigation with step-by-step instructions
+- **Voice Guidance**: Spoken directions using text-to-speech
+- **Route Display**: Shows actual driving route on the map (not just straight line)
+- **Live Tracking**: Updates your position and remaining distance in real-time
+- **ETA Calculation**: Shows estimated time of arrival
+- **Maneuver Icons**: Visual indicators for turns, merges, roundabouts
+- **Navigation Panel**: Beautiful UI overlay with current instruction
+- **Arrival Detection**: Automatically detects when you reach your car
+
+### How to Use:
+1. Save your parking spot
+2. Tap the mini map or "VIEW MAP" button
+3. Tap "START NAVIGATION"
+4. Choose **"In-App Navigation"** for custom experience
+   - OR choose "External App" for Google/Apple Maps
+5. Follow the turn-by-turn instructions
+6. Toggle voice guidance with the speaker button
+7. App will notify you when you arrive
+
+### Requirements:
+- **Google Directions API** must be enabled (see step 2 above)
+- Location permissions granted
+- Internet connection for route calculation
+- The app will work with fallback straight-line routing if API is unavailable
+
+### New Dependencies:
+- `flutter_polyline_points` - Decodes route polylines
+- `flutter_tts` - Text-to-speech voice guidance
 

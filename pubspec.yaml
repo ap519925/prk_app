@@ -16,9 +16,11 @@ dependencies:
   
   # Maps
   google_maps_flutter: ^2.5.0
-  
+  flutter_polyline_points: ^2.0.0
+
   # Navigation
   url_launcher: ^6.2.1
+  flutter_tts: ^4.0.2
   
   # Local storage
   shared_preferences: ^2.2.2

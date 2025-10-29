@@ -5,6 +5,7 @@ import 'package:geolocator/geolocator.dart';
 import '../models/parking_spot.dart';
 import '../services/location_service.dart';
 import '../services/navigation_service.dart';
+import '../screens/navigation_screen.dart';
 
 class MapScreen extends StatefulWidget {
   final ParkingSpot parkingSpot;
@@ -375,12 +376,9 @@ class _MapScreenState extends State<MapScreen> {
             ],
             const SizedBox(height: 20),
             ElevatedButton.icon(
-              onPressed: () async {
+              onPressed: () {
                 Navigator.pop(context);
-                await NavigationService.instance.openNavigation(
-                  widget.parkingSpot.latitude,
-                  widget.parkingSpot.longitude,
-                );
+                _showNavigationOptions();
               },
               icon: const Icon(Icons.navigation),
               label: const Text('Start Navigation'),
@@ -616,12 +614,7 @@ class _MapScreenState extends State<MapScreen> {
                   child: Material(
                     color: Colors.transparent,
                     child: InkWell(
-                      onTap: () async {
-                        await NavigationService.instance.openNavigation(
-                          widget.parkingSpot.latitude,
-                          widget.parkingSpot.longitude,
-                        );
-                      },
+                      onTap: _showNavigationOptions,
                       borderRadius: BorderRadius.circular(20),
                       child: Container(
                         padding: const EdgeInsets.symmetric(vertical: 18),
@@ -665,6 +658,116 @@ class _MapScreenState extends State<MapScreen> {
                 ),
               ],
             ),
+    );
+  }
+
+  void _showNavigationOptions() {
+    showModalBottomSheet(
+      context: context,
+      builder: (context) => Container(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const Text(
+              'Choose Navigation',
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 20),
+
+            // Custom In-App Navigation
+            ElevatedButton.icon(
+              onPressed: () {
+                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => NavigationScreen(
+                      parkingSpot: widget.parkingSpot,
+                    ),
+                  ),
+                );
+              },
+              icon: const Icon(Icons.map, size: 28),
+              label: const Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'In-App Navigation',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  Text(
+                    'Turn-by-turn directions with voice',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.normal,
+                    ),
+                  ),
+                ],
+              ),
+              style: ElevatedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
+                backgroundColor: const Color(0xFF3B82F6), // Blue
+                foregroundColor: Colors.white,
+                alignment: Alignment.centerLeft,
+              ),
+            ),
+
+            const SizedBox(height: 12),
+
+            // External Navigation Apps
+            OutlinedButton.icon(
+              onPressed: () async {
+                Navigator.pop(context);
+                await NavigationService.instance.openNavigation(
+                  widget.parkingSpot.latitude,
+                  widget.parkingSpot.longitude,
+                );
+              },
+              icon: const Icon(Icons.open_in_new, size: 24),
+              label: const Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'External App',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  Text(
+                    'Open in Google Maps or Apple Maps',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.normal,
+                    ),
+                  ),
+                ],
+              ),
+              style: OutlinedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
+                foregroundColor: const Color(0xFF3B82F6),
+                side: const BorderSide(color: Color(0xFF3B82F6), width: 2),
+                alignment: Alignment.centerLeft,
+              ),
+            ),
+
+            const SizedBox(height: 12),
+
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
