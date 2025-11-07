@@ -9,6 +9,7 @@ import '../services/navigation_service.dart';
 import '../services/parking_alerts_service.dart';
 import '../services/notification_service.dart';
 import '../screens/map_screen.dart';
+import '../screens/settings_screen.dart';
 import '../widgets/mini_map_preview.dart';
 
 class HomeScreenRedesign extends StatefulWidget {
@@ -142,8 +143,9 @@ class _HomeScreenRedesignState extends State<HomeScreenRedesign>
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
-        backgroundColor:
-            isError ? const Color(0xFFEF4444) : const Color(0xFF10B981),
+        backgroundColor: isError
+            ? Theme.of(context).colorScheme.error
+            : Theme.of(context).colorScheme.tertiary,
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         margin: const EdgeInsets.all(16),
@@ -168,20 +170,30 @@ class _HomeScreenRedesignState extends State<HomeScreenRedesign>
     );
   }
 
+  void _openSettings() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const SettingsScreen(),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     final hasSpot = _parkingSpot != null;
 
     return Scaffold(
       body: Container(
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: [
-              Color(0xFF0F172A),
-              Color(0xFF1E293B),
-              Color(0xFF0F172A),
+              theme.colorScheme.background,
+              theme.colorScheme.surface,
+              theme.colorScheme.background,
             ],
           ),
         ),
@@ -198,31 +210,37 @@ class _HomeScreenRedesignState extends State<HomeScreenRedesign>
                     Container(
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
-                        color: const Color(0xFF3B82F6).withOpacity(0.2),
+                        color: theme.colorScheme.primary.withOpacity(0.2),
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      child: const Icon(
+                      child: Icon(
                         Icons.local_parking,
-                        color: Color(0xFF3B82F6),
+                        color: theme.colorScheme.primary,
                       ),
                     ),
                     const SizedBox(width: 12),
-                    const Text(
+                    Text(
                       'Prk',
                       style: TextStyle(
                         fontSize: 28,
                         fontWeight: FontWeight.bold,
-                        color: Color(0xFFF1F5F9),
+                        color: theme.colorScheme.onSurface,
                       ),
                     ),
                   ],
                 ).animate().fadeIn(duration: 400.ms).slideX(),
                 actions: [
+                  IconButton(
+                    onPressed: _openSettings,
+                    icon: const Icon(Icons.settings),
+                    color: theme.colorScheme.primary,
+                    tooltip: 'Settings',
+                  ).animate().scale(delay: 200.ms),
                   if (hasSpot)
                     IconButton(
                       onPressed: _clearParking,
                       icon: const Icon(Icons.delete_outline),
-                      color: const Color(0xFFEF4444),
+                      color: theme.colorScheme.error,
                       tooltip: 'Clear parking',
                     ).animate().scale(delay: 300.ms),
                 ],
@@ -276,7 +294,7 @@ class _HomeScreenRedesignState extends State<HomeScreenRedesign>
               shape: BoxShape.circle,
               gradient: RadialGradient(
                 colors: [
-                  const Color(0xFF3B82F6).withOpacity(0.3),
+                  Theme.of(context).colorScheme.primary.withOpacity(0.3),
                   Colors.transparent,
                 ],
               ),
@@ -286,24 +304,24 @@ class _HomeScreenRedesignState extends State<HomeScreenRedesign>
               builder: (context, child) {
                 return Transform.scale(
                   scale: 1.0 + (_pulseController.value * 0.1),
-                  child: const Icon(
+                  child: Icon(
                     Icons.car_rental,
                     size: 120,
-                    color: Color(0xFF3B82F6),
+                    color: Theme.of(context).colorScheme.primary,
                   ),
                 );
               },
             ),
           ).animate(onPlay: (controller) => controller.repeat()).shimmer(
               duration: 2000.ms,
-              color: const Color(0xFF3B82F6).withOpacity(0.3)),
+              color: Theme.of(context).colorScheme.primary.withOpacity(0.3)),
           const SizedBox(height: 40),
-          const Text(
+          Text(
             'No Parking Spot Saved',
             style: TextStyle(
               fontSize: 28,
               fontWeight: FontWeight.bold,
-              color: Color(0xFFF1F5F9),
+              color: Theme.of(context).colorScheme.onSurface,
             ),
             textAlign: TextAlign.center,
           ).animate().fadeIn(delay: 200.ms).slideY(),
@@ -312,7 +330,7 @@ class _HomeScreenRedesignState extends State<HomeScreenRedesign>
             'Save your location to never\nlose your car again',
             style: TextStyle(
               fontSize: 16,
-              color: const Color(0xFFF1F5F9).withOpacity(0.6),
+              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
             ),
             textAlign: TextAlign.center,
           ).animate().fadeIn(delay: 400.ms),
@@ -325,15 +343,15 @@ class _HomeScreenRedesignState extends State<HomeScreenRedesign>
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: const Color(0xFF1E293B).withOpacity(0.8),
+        color: Theme.of(context).colorScheme.surface.withOpacity(0.8),
         borderRadius: BorderRadius.circular(24),
         border: Border.all(
-          color: const Color(0xFF3B82F6).withOpacity(0.3),
+          color: Theme.of(context).colorScheme.primary.withOpacity(0.3),
           width: 2,
         ),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF3B82F6).withOpacity(0.1),
+            color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
             blurRadius: 20,
             spreadRadius: 0,
           ),
@@ -347,12 +365,13 @@ class _HomeScreenRedesignState extends State<HomeScreenRedesign>
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF10B981).withOpacity(0.2),
+                  color:
+                      Theme.of(context).colorScheme.tertiary.withOpacity(0.2),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: const Icon(
+                child: Icon(
                   Icons.check_circle,
-                  color: Color(0xFF10B981),
+                  color: Theme.of(context).colorScheme.tertiary,
                   size: 32,
                 ),
               ),
@@ -361,19 +380,22 @@ class _HomeScreenRedesignState extends State<HomeScreenRedesign>
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
+                    Text(
                       'Car Parked',
                       style: TextStyle(
                         fontSize: 24,
                         fontWeight: FontWeight.bold,
-                        color: Color(0xFFF1F5F9),
+                        color: Theme.of(context).colorScheme.onSurface,
                       ),
                     ),
                     Text(
                       _formatTimeAgo(_parkingSpot!.savedAt),
                       style: TextStyle(
                         fontSize: 14,
-                        color: const Color(0xFFF1F5F9).withOpacity(0.6),
+                        color: Theme.of(context)
+                            .colorScheme
+                            .onSurface
+                            .withOpacity(0.6),
                       ),
                     ),
                   ],
@@ -385,23 +407,23 @@ class _HomeScreenRedesignState extends State<HomeScreenRedesign>
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: const Color(0xFF0F172A).withOpacity(0.6),
+              color: Theme.of(context).colorScheme.background.withOpacity(0.6),
               borderRadius: BorderRadius.circular(16),
             ),
             child: Row(
               children: [
-                const Icon(
+                Icon(
                   Icons.location_on,
-                  color: Color(0xFF3B82F6),
+                  color: Theme.of(context).colorScheme.primary,
                   size: 24,
                 ),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
                     _parkingSpot!.address ?? _parkingSpot!.coordinates,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 16,
-                      color: Color(0xFFF1F5F9),
+                      color: Theme.of(context).colorScheme.onSurface,
                     ),
                   ),
                 ),
@@ -416,7 +438,7 @@ class _HomeScreenRedesignState extends State<HomeScreenRedesign>
                   child: _buildQuickAction(
                     icon: Icons.map_outlined,
                     label: 'Map',
-                    color: const Color(0xFF3B82F6),
+                    color: Theme.of(context).colorScheme.primary,
                     onTap: _openMap,
                   ),
                 ),
@@ -425,7 +447,7 @@ class _HomeScreenRedesignState extends State<HomeScreenRedesign>
                 child: _buildQuickAction(
                   icon: Icons.camera_alt_outlined,
                   label: 'Photo',
-                  color: const Color(0xFF3B82F6),
+                  color: Theme.of(context).colorScheme.primary,
                   onTap: () {},
                 ),
               ),
@@ -434,7 +456,7 @@ class _HomeScreenRedesignState extends State<HomeScreenRedesign>
                 child: _buildQuickAction(
                   icon: Icons.timer_outlined,
                   label: 'Timer',
-                  color: const Color(0xFF3B82F6),
+                  color: Theme.of(context).colorScheme.primary,
                   onTap: () {},
                 ),
               ),
@@ -494,20 +516,20 @@ class _HomeScreenRedesignState extends State<HomeScreenRedesign>
             child: FadeInAnimation(child: widget),
           ),
           children: [
-            const Row(
+            Row(
               children: [
                 Icon(
                   Icons.warning_amber_rounded,
-                  color: Color(0xFFEF4444),
+                  color: Theme.of(context).colorScheme.error,
                   size: 24,
                 ),
-                SizedBox(width: 8),
+                const SizedBox(width: 8),
                 Text(
                   'Parking Alerts',
                   style: TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
-                    color: Color(0xFFF1F5F9),
+                    color: Theme.of(context).colorScheme.onSurface,
                   ),
                 ),
               ],
@@ -517,10 +539,12 @@ class _HomeScreenRedesignState extends State<HomeScreenRedesign>
                   margin: const EdgeInsets.only(bottom: 12),
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF1E293B).withOpacity(0.6),
+                    color:
+                        Theme.of(context).colorScheme.surface.withOpacity(0.6),
                     borderRadius: BorderRadius.circular(16),
                     border: Border.all(
-                      color: const Color(0xFFEF4444).withOpacity(0.3),
+                      color:
+                          Theme.of(context).colorScheme.error.withOpacity(0.3),
                     ),
                   ),
                   child: Row(
@@ -548,16 +572,19 @@ class _HomeScreenRedesignState extends State<HomeScreenRedesign>
                               alert.description,
                               style: TextStyle(
                                 fontSize: 14,
-                                color: const Color(0xFFF1F5F9).withOpacity(0.7),
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .onSurface
+                                    .withOpacity(0.7),
                               ),
                             ),
                             if (alert.timeRange != null) ...[
                               const SizedBox(height: 4),
                               Text(
                                 alert.timeRange!,
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 12,
-                                  color: Color(0xFF3B82F6),
+                                  color: Theme.of(context).colorScheme.primary,
                                   fontStyle: FontStyle.italic,
                                 ),
                               ),
@@ -584,7 +611,7 @@ class _HomeScreenRedesignState extends State<HomeScreenRedesign>
             _buildMainButton(
               label: 'FIND MY CAR',
               icon: Icons.navigation,
-              color: const Color(0xFF10B981),
+              color: Theme.of(context).colorScheme.tertiary,
               onPressed: _findMyCar,
             ).animate().fadeIn(delay: 200.ms).slideY(begin: 0.3),
             const SizedBox(height: 12),
@@ -592,7 +619,7 @@ class _HomeScreenRedesignState extends State<HomeScreenRedesign>
           _buildMainButton(
             label: hasSpot ? 'UPDATE LOCATION' : 'SAVE PARKING SPOT',
             icon: Icons.pin_drop,
-            color: const Color(0xFF3B82F6),
+            color: Theme.of(context).colorScheme.primary,
             onPressed: _isLoading ? null : _saveParkingSpot,
             isLoading: _isLoading,
           ).animate().fadeIn(delay: hasSpot ? 300.ms : 0.ms).slideY(begin: 0.3),
@@ -676,38 +703,39 @@ class _HomeScreenRedesignState extends State<HomeScreenRedesign>
   }
 
   Widget _buildWebMapPlaceholder() {
+    final theme = Theme.of(context);
     return Container(
       height: 200,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: const Color(0xFF3B82F6).withOpacity(0.3),
+          color: theme.colorScheme.primary.withOpacity(0.3),
           width: 2,
         ),
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            const Color(0xFF1E293B).withOpacity(0.6),
-            const Color(0xFF0F172A).withOpacity(0.6),
+            theme.colorScheme.surface.withOpacity(0.6),
+            theme.colorScheme.background.withOpacity(0.6),
           ],
         ),
       ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(
+          Icon(
             Icons.map,
             size: 64,
-            color: Color(0xFF3B82F6),
+            color: theme.colorScheme.primary,
           ),
           const SizedBox(height: 16),
-          const Text(
+          Text(
             '🗺️ Interactive Map',
             style: TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.bold,
-              color: Color(0xFFF1F5F9),
+              color: theme.colorScheme.onSurface,
             ),
           ),
           const SizedBox(height: 8),
@@ -715,7 +743,7 @@ class _HomeScreenRedesignState extends State<HomeScreenRedesign>
             'Available on mobile app',
             style: TextStyle(
               fontSize: 14,
-              color: const Color(0xFFF1F5F9).withOpacity(0.6),
+              color: theme.colorScheme.onSurface.withOpacity(0.6),
             ),
           ),
           const SizedBox(height: 4),
@@ -724,7 +752,7 @@ class _HomeScreenRedesignState extends State<HomeScreenRedesign>
               '${_parkingSpot!.latitude.toStringAsFixed(6)}, ${_parkingSpot!.longitude.toStringAsFixed(6)}',
               style: TextStyle(
                 fontSize: 12,
-                color: const Color(0xFF3B82F6).withOpacity(0.8),
+                color: theme.colorScheme.primary.withOpacity(0.8),
                 fontFamily: 'monospace',
               ),
             ),

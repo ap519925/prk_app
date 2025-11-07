@@ -28,6 +28,9 @@ dependencies:
   
   # Permissions
   permission_handler: ^11.0.1
+
+  # Bluetooth (for auto parking on disconnect)
+  flutter_blue_plus: ^1.31.16
   
   # Notifications
   flutter_local_notifications: ^17.0.0
@@ -49,6 +52,14 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^3.0.0
+  flutter_launcher_icons: ^0.13.1
+
+flutter_icons:
+  android: true
+  ios: true
+  image_path: "assets/logo_prk.png"
+  adaptive_icon_background: "#ffffff"
+  adaptive_icon_foreground: "assets/logo_prk.png"
 
 flutter:
   uses-material-design: true

@@ -17,7 +17,7 @@ class MiniMapPreview extends StatefulWidget {
 }
 
 class _MiniMapPreviewState extends State<MiniMapPreview> {
-  Set<Marker> _markers = {};
+  final Set<Marker> _markers = {};
 
   @override
   void initState() {
@@ -109,7 +109,7 @@ class _MiniMapPreviewState extends State<MiniMapPreview> {
                       end: Alignment.bottomCenter,
                       colors: [
                         Colors.transparent,
-                        Colors.black.withOpacity(0.3),
+                        theme.colorScheme.onSurface.withOpacity(0.2),
                       ],
                     ),
                   ),
@@ -137,15 +137,16 @@ class _MiniMapPreviewState extends State<MiniMapPreview> {
                       ),
                     ],
                   ),
-                  child: const Row(
+                  child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(Icons.map, color: Colors.white, size: 20),
-                      SizedBox(width: 8),
+                      Icon(Icons.map,
+                          color: theme.colorScheme.onPrimary, size: 20),
+                      const SizedBox(width: 8),
                       Text(
                         'Tap to Open Full Map',
                         style: TextStyle(
-                          color: Colors.white,
+                          color: theme.colorScheme.onPrimary,
                           fontWeight: FontWeight.bold,
                           fontSize: 14,
                         ),
@@ -154,7 +155,8 @@ class _MiniMapPreviewState extends State<MiniMapPreview> {
                   ),
                 ),
               )
-                  .animate(onPlay: (controller) => controller.repeat(reverse: true))
+                  .animate(
+                      onPlay: (controller) => controller.repeat(reverse: true))
                   .scale(
                     duration: 1500.ms,
                     begin: const Offset(1.0, 1.0),
@@ -199,4 +201,3 @@ class _MiniMapPreviewState extends State<MiniMapPreview> {
   ]
   ''';
 }
-

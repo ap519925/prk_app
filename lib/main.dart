@@ -2,11 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:find_my_car/screens/home_screen_redesign.dart';
 import 'package:find_my_car/services/location_service.dart';
 import 'package:find_my_car/services/notification_service.dart';
+import 'package:find_my_car/services/settings_service.dart';
+import 'package:find_my_car/constants/colors.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await LocationService.instance.initialize();
   await NotificationService.instance.initialize();
+  await SettingsService().initialize();
   runApp(const FindMyCarApp());
 }
 
@@ -15,71 +18,14 @@ class FindMyCarApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final settingsService = SettingsService();
     return MaterialApp(
       title: 'Find My Car',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: Colors.blue,
-          brightness: Brightness.light,
-        ),
-        useMaterial3: true,
-        elevatedButtonTheme: ElevatedButtonThemeData(
-          style: ElevatedButton.styleFrom(
-            padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 48),
-            textStyle: const TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-            ),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
-            ),
-          ),
-        ),
-      ),
-      darkTheme: ThemeData(
-        colorScheme: const ColorScheme.dark(
-          primary: Color(0xFF3B82F6),        // Bright Blue
-          secondary: Color(0xFF10B981),       // Green
-          error: Color(0xFFEF4444),           // Red (Accent)
-          background: Color(0xFF0F172A),      // Slate 900
-          surface: Color(0xFF1E293B),        // Slate 800
-          onPrimary: Color(0xFFF1F5F9),      // Slate 100
-          onSecondary: Color(0xFFF1F5F9),    // Slate 100
-          onError: Color(0xFFF1F5F9),        // Slate 100
-          onBackground: Color(0xFFF1F5F9),    // Slate 100
-          onSurface: Color(0xFFF1F5F9),      // Slate 100
-        ),
-        scaffoldBackgroundColor: const Color(0xFF0F172A), // Slate 900
-        useMaterial3: true,
-        cardTheme: const CardThemeData(
-          color: Color(0xFF1E293B), // Slate 800
-          elevation: 8,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.all(Radius.circular(16)),
-          ),
-        ),
-        elevatedButtonTheme: ElevatedButtonThemeData(
-          style: ElevatedButton.styleFrom(
-            padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 48),
-            textStyle: const TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-            ),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
-            ),
-          ),
-        ),
-        appBarTheme: const AppBarTheme(
-          backgroundColor: Color(0xFF1E293B), // Slate 800
-          foregroundColor: Color(0xFFF1F5F9), // Slate 100
-          elevation: 0,
-        ),
-      ),
-      themeMode: ThemeMode.dark, // Force dark mode to show new color scheme
+      theme: getLightTheme(),
+      darkTheme: getDarkTheme(),
+      themeMode: settingsService.isDarkMode ? ThemeMode.dark : ThemeMode.light,
       home: const HomeScreenRedesign(),
     );
   }
 }
-

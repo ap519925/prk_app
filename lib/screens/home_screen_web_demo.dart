@@ -1,7 +1,6 @@
 // Web demo version with new redesigned UI
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import 'package:shimmer/shimmer.dart';
 import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
 
 class HomeScreenWebDemo extends StatefulWidget {
@@ -68,7 +67,8 @@ class _HomeScreenWebDemoState extends State<HomeScreenWebDemo>
         _isLoading = false;
       });
 
-      _showSnackBar('✓ Demo parking spot saved! 3 alerts found', isError: false);
+      _showSnackBar('✓ Demo parking spot saved! 3 alerts found',
+          isError: false);
     });
   }
 
@@ -91,8 +91,8 @@ class _HomeScreenWebDemoState extends State<HomeScreenWebDemo>
       SnackBar(
         content: Text(message),
         backgroundColor: isError
-            ? const Color(0xFFEF4444)
-            : const Color(0xFF10B981),
+            ? Theme.of(context).colorScheme.error
+            : Theme.of(context).colorScheme.tertiary,
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         margin: const EdgeInsets.all(16),
@@ -102,16 +102,17 @@ class _HomeScreenWebDemoState extends State<HomeScreenWebDemo>
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Scaffold(
       body: Container(
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: [
-              Color(0xFF0F172A),
-              Color(0xFF1E293B),
-              Color(0xFF0F172A),
+              theme.colorScheme.background,
+              theme.colorScheme.surface,
+              theme.colorScheme.background,
             ],
           ),
         ),
@@ -128,21 +129,21 @@ class _HomeScreenWebDemoState extends State<HomeScreenWebDemo>
                     Container(
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
-                        color: const Color(0xFF3B82F6).withOpacity(0.2),
+                        color: theme.colorScheme.primary.withOpacity(0.2),
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      child: const Icon(
+                      child: Icon(
                         Icons.local_parking,
-                        color: Color(0xFF3B82F6),
+                        color: theme.colorScheme.primary,
                       ),
                     ),
                     const SizedBox(width: 12),
-                    const Text(
+                    Text(
                       'Prk',
                       style: TextStyle(
                         fontSize: 28,
                         fontWeight: FontWeight.bold,
-                        color: Color(0xFFF1F5F9),
+                        color: theme.colorScheme.onSurface,
                       ),
                     ),
                   ],
@@ -152,7 +153,7 @@ class _HomeScreenWebDemoState extends State<HomeScreenWebDemo>
                     IconButton(
                       onPressed: _clearParking,
                       icon: const Icon(Icons.delete_outline),
-                      color: const Color(0xFFEF4444),
+                      color: theme.colorScheme.error,
                       tooltip: 'Clear parking',
                     ).animate().scale(delay: 300.ms),
                 ],
@@ -166,7 +167,7 @@ class _HomeScreenWebDemoState extends State<HomeScreenWebDemo>
                     // Web Demo Banner
                     _buildDemoBanner(),
                     const SizedBox(height: 20),
-                    
+
                     if (!_hasSpot) ...[
                       _buildEmptyState(),
                     ] else ...[
@@ -188,28 +189,30 @@ class _HomeScreenWebDemoState extends State<HomeScreenWebDemo>
   }
 
   Widget _buildDemoBanner() {
+    final theme = Theme.of(context);
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFF1E293B).withOpacity(0.6),
+        color: theme.colorScheme.surface.withOpacity(0.6),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: const Color(0xFF3B82F6).withOpacity(0.3),
+          color: theme.colorScheme.primary.withOpacity(0.3),
           width: 2,
         ),
       ),
       child: Column(
         children: [
-          const Row(
+          Row(
             children: [
-              Icon(Icons.info_outline, color: Color(0xFF3B82F6), size: 24),
-              SizedBox(width: 12),
+              Icon(Icons.info_outline,
+                  color: theme.colorScheme.primary, size: 24),
+              const SizedBox(width: 12),
               Text(
                 '🌐 Web Demo Mode',
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
-                  color: Color(0xFFF1F5F9),
+                  color: theme.colorScheme.onSurface,
                 ),
               ),
             ],
@@ -220,7 +223,7 @@ class _HomeScreenWebDemoState extends State<HomeScreenWebDemo>
             'Real app includes GPS, camera, and push notifications.',
             style: TextStyle(
               fontSize: 14,
-              color: const Color(0xFFF1F5F9).withOpacity(0.7),
+              color: theme.colorScheme.onSurface.withOpacity(0.7),
             ),
             textAlign: TextAlign.center,
           ),
@@ -230,6 +233,7 @@ class _HomeScreenWebDemoState extends State<HomeScreenWebDemo>
   }
 
   Widget _buildEmptyState() {
+    final theme = Theme.of(context);
     return AnimationConfiguration.synchronized(
       duration: const Duration(milliseconds: 600),
       child: Column(
@@ -242,7 +246,7 @@ class _HomeScreenWebDemoState extends State<HomeScreenWebDemo>
               shape: BoxShape.circle,
               gradient: RadialGradient(
                 colors: [
-                  const Color(0xFF3B82F6).withOpacity(0.3),
+                  theme.colorScheme.primary.withOpacity(0.3),
                   Colors.transparent,
                 ],
               ),
@@ -252,17 +256,17 @@ class _HomeScreenWebDemoState extends State<HomeScreenWebDemo>
               builder: (context, child) {
                 return Transform.scale(
                   scale: 1.0 + (_pulseController.value * 0.1),
-                  child: const Icon(
+                  child: Icon(
                     Icons.car_rental,
                     size: 120,
-                    color: Color(0xFF3B82F6),
+                    color: theme.colorScheme.primary,
                   ),
                 );
               },
             ),
-          )
-              .animate(onPlay: (controller) => controller.repeat())
-              .shimmer(duration: 2000.ms, color: const Color(0xFF3B82F6).withOpacity(0.3)),
+          ).animate(onPlay: (controller) => controller.repeat()).shimmer(
+              duration: 2000.ms,
+              color: theme.colorScheme.primary.withOpacity(0.3)),
           const SizedBox(height: 40),
           const Text(
             'No Parking Spot Saved',
@@ -278,7 +282,7 @@ class _HomeScreenWebDemoState extends State<HomeScreenWebDemo>
             'Click Save to demo NYC parking alerts',
             style: TextStyle(
               fontSize: 16,
-              color: const Color(0xFFF1F5F9).withOpacity(0.6),
+              color: theme.colorScheme.onSurface.withOpacity(0.6),
             ),
             textAlign: TextAlign.center,
           ).animate().fadeIn(delay: 400.ms),
@@ -288,18 +292,19 @@ class _HomeScreenWebDemoState extends State<HomeScreenWebDemo>
   }
 
   Widget _buildParkingInfo() {
+    final theme = Theme.of(context);
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: const Color(0xFF1E293B).withOpacity(0.8),
+        color: theme.colorScheme.surface.withOpacity(0.8),
         borderRadius: BorderRadius.circular(24),
         border: Border.all(
-          color: const Color(0xFF3B82F6).withOpacity(0.3),
+          color: theme.colorScheme.primary.withOpacity(0.3),
           width: 2,
         ),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF3B82F6).withOpacity(0.1),
+            color: theme.colorScheme.primary.withOpacity(0.1),
             blurRadius: 20,
             spreadRadius: 0,
           ),
@@ -313,12 +318,12 @@ class _HomeScreenWebDemoState extends State<HomeScreenWebDemo>
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF10B981).withOpacity(0.2),
+                  color: theme.colorScheme.tertiary.withOpacity(0.2),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: const Icon(
+                child: Icon(
                   Icons.check_circle,
-                  color: Color(0xFF10B981),
+                  color: theme.colorScheme.tertiary,
                   size: 32,
                 ),
               ),
@@ -351,23 +356,23 @@ class _HomeScreenWebDemoState extends State<HomeScreenWebDemo>
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: const Color(0xFF0F172A).withOpacity(0.6),
+              color: theme.colorScheme.background.withOpacity(0.6),
               borderRadius: BorderRadius.circular(16),
             ),
             child: Row(
               children: [
-                const Icon(
+                Icon(
                   Icons.location_on,
-                  color: Color(0xFF3B82F6),
+                  color: theme.colorScheme.primary,
                   size: 24,
                 ),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
                     _address ?? _coordinates ?? '',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 16,
-                      color: Color(0xFFF1F5F9),
+                      color: theme.colorScheme.onSurface,
                     ),
                   ),
                 ),
@@ -380,6 +385,7 @@ class _HomeScreenWebDemoState extends State<HomeScreenWebDemo>
   }
 
   Widget _buildAlertsCard() {
+    final theme = Theme.of(context);
     return AnimationLimiter(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -390,20 +396,20 @@ class _HomeScreenWebDemoState extends State<HomeScreenWebDemo>
             child: FadeInAnimation(child: widget),
           ),
           children: [
-            const Row(
+            Row(
               children: [
                 Icon(
                   Icons.warning_amber_rounded,
-                  color: Color(0xFFEF4444),
+                  color: theme.colorScheme.error,
                   size: 24,
                 ),
-                SizedBox(width: 8),
+                const SizedBox(width: 8),
                 Text(
                   'Parking Alerts',
                   style: TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
-                    color: Color(0xFFF1F5F9),
+                    color: theme.colorScheme.onSurface,
                   ),
                 ),
               ],
@@ -413,10 +419,10 @@ class _HomeScreenWebDemoState extends State<HomeScreenWebDemo>
                   margin: const EdgeInsets.only(bottom: 12),
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF1E293B).withOpacity(0.6),
+                    color: theme.colorScheme.surface.withOpacity(0.6),
                     borderRadius: BorderRadius.circular(16),
                     border: Border.all(
-                      color: const Color(0xFFEF4444).withOpacity(0.3),
+                      color: theme.colorScheme.error.withOpacity(0.3),
                     ),
                   ),
                   child: Row(
@@ -444,16 +450,17 @@ class _HomeScreenWebDemoState extends State<HomeScreenWebDemo>
                               alert['description'],
                               style: TextStyle(
                                 fontSize: 14,
-                                color: const Color(0xFFF1F5F9).withOpacity(0.7),
+                                color: theme.colorScheme.onSurface
+                                    .withOpacity(0.7),
                               ),
                             ),
                             if (alert['timeRange'] != null) ...[
                               const SizedBox(height: 4),
                               Text(
                                 alert['timeRange'],
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 12,
-                                  color: Color(0xFF3B82F6),
+                                  color: theme.colorScheme.primary,
                                   fontStyle: FontStyle.italic,
                                 ),
                               ),
@@ -471,6 +478,7 @@ class _HomeScreenWebDemoState extends State<HomeScreenWebDemo>
   }
 
   Widget _buildActionButtons() {
+    final theme = Theme.of(context);
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Column(
@@ -480,7 +488,7 @@ class _HomeScreenWebDemoState extends State<HomeScreenWebDemo>
             _buildMainButton(
               label: 'FIND MY CAR',
               icon: Icons.navigation,
-              color: const Color(0xFF10B981),
+              color: theme.colorScheme.tertiary,
               onPressed: _findMyCar,
             ).animate().fadeIn(delay: 200.ms).slideY(begin: 0.3),
             const SizedBox(height: 12),
@@ -488,10 +496,13 @@ class _HomeScreenWebDemoState extends State<HomeScreenWebDemo>
           _buildMainButton(
             label: _hasSpot ? 'UPDATE LOCATION' : 'SAVE PARKING SPOT',
             icon: Icons.pin_drop,
-            color: const Color(0xFF3B82F6),
+            color: theme.colorScheme.primary,
             onPressed: _isLoading ? null : _saveParkingSpot,
             isLoading: _isLoading,
-          ).animate().fadeIn(delay: _hasSpot ? 300.ms : 0.ms).slideY(begin: 0.3),
+          )
+              .animate()
+              .fadeIn(delay: _hasSpot ? 300.ms : 0.ms)
+              .slideY(begin: 0.3),
         ],
       ),
     );
@@ -556,4 +567,3 @@ class _HomeScreenWebDemoState extends State<HomeScreenWebDemo>
     );
   }
 }
-

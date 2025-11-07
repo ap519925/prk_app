@@ -16,6 +16,7 @@ class ParkingDetailsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Scaffold(
       appBar: AppBar(
         title: const Text('Parking Details'),
@@ -57,7 +58,8 @@ class ParkingDetailsScreen extends StatelessWidget {
                   children: [
                     Row(
                       children: [
-                        const Icon(Icons.location_on, color: Colors.red),
+                        Icon(Icons.location_on,
+                            color: theme.colorScheme.primary),
                         const SizedBox(width: 8),
                         const Text(
                           'Location',
@@ -79,7 +81,7 @@ class ParkingDetailsScreen extends StatelessWidget {
                       parkingSpot.coordinates,
                       style: TextStyle(
                         fontSize: 14,
-                        color: Colors.grey.shade600,
+                        color: theme.colorScheme.onSurface.withOpacity(0.6),
                         fontFamily: 'monospace',
                       ),
                     ),
@@ -90,7 +92,7 @@ class ParkingDetailsScreen extends StatelessWidget {
                         '${parkingSpot.city ?? ''}${parkingSpot.city != null && parkingSpot.state != null ? ', ' : ''}${parkingSpot.state ?? ''}',
                         style: TextStyle(
                           fontSize: 14,
-                          color: Colors.grey.shade600,
+                          color: theme.colorScheme.onSurface.withOpacity(0.6),
                         ),
                       ),
                     ],
@@ -110,7 +112,8 @@ class ParkingDetailsScreen extends StatelessWidget {
                   children: [
                     Row(
                       children: [
-                        const Icon(Icons.access_time, color: Colors.blue),
+                        Icon(Icons.access_time,
+                            color: theme.colorScheme.primary),
                         const SizedBox(width: 8),
                         const Text(
                           'Time Information',
@@ -123,15 +126,16 @@ class ParkingDetailsScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: 12),
                     _buildInfoRow(
-                        'Saved', _formatDateTime(parkingSpot.savedAt)),
+                        context, 'Saved', _formatDateTime(parkingSpot.savedAt)),
                     if (parkingSpot.timerEnd != null) ...[
                       const Divider(height: 24),
                       _buildInfoRow(
+                        context,
                         'Timer Expires',
                         _formatDateTime(parkingSpot.timerEnd!),
                       ),
                       const SizedBox(height: 8),
-                      _buildTimeRemaining(),
+                      _buildTimeRemaining(context),
                     ],
                   ],
                 ),
@@ -144,7 +148,7 @@ class ParkingDetailsScreen extends StatelessWidget {
             if (parkingSpot.alerts != null &&
                 parkingSpot.alerts!.isNotEmpty) ...[
               Card(
-                color: Colors.orange.shade50,
+                color: theme.colorScheme.surface,
                 child: Padding(
                   padding: const EdgeInsets.all(16.0),
                   child: Column(
@@ -153,14 +157,14 @@ class ParkingDetailsScreen extends StatelessWidget {
                       Row(
                         children: [
                           Icon(Icons.warning_amber_rounded,
-                              color: Colors.orange.shade700),
+                              color: theme.colorScheme.error),
                           const SizedBox(width: 8),
                           Text(
                             'Parking Alerts (${parkingSpot.alerts!.length})',
                             style: TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.bold,
-                              color: Colors.orange.shade900,
+                              color: theme.colorScheme.error,
                             ),
                           ),
                         ],
@@ -171,7 +175,7 @@ class ParkingDetailsScreen extends StatelessWidget {
                             child: Container(
                               padding: const EdgeInsets.all(12),
                               decoration: BoxDecoration(
-                                color: Colors.white,
+                                color: theme.colorScheme.background,
                                 borderRadius: BorderRadius.circular(8),
                               ),
                               child: Column(
@@ -196,8 +200,10 @@ class ParkingDetailsScreen extends StatelessWidget {
                                   const SizedBox(height: 8),
                                   Text(
                                     alert.description,
-                                    style:
-                                        TextStyle(color: Colors.grey.shade700),
+                                    style: TextStyle(
+                                      color: theme.colorScheme.onSurface
+                                          .withOpacity(0.7),
+                                    ),
                                   ),
                                   if (alert.timeRange != null) ...[
                                     const SizedBox(height: 4),
@@ -205,7 +211,8 @@ class ParkingDetailsScreen extends StatelessWidget {
                                       alert.timeRange!,
                                       style: TextStyle(
                                         fontSize: 12,
-                                        color: Colors.grey.shade600,
+                                        color: theme.colorScheme.onSurface
+                                            .withOpacity(0.6),
                                         fontStyle: FontStyle.italic,
                                       ),
                                     ),
@@ -216,7 +223,8 @@ class ParkingDetailsScreen extends StatelessWidget {
                                       'Source: ${alert.source}',
                                       style: TextStyle(
                                         fontSize: 11,
-                                        color: Colors.grey.shade500,
+                                        color: theme.colorScheme.onSurface
+                                            .withOpacity(0.5),
                                       ),
                                     ),
                                   ],
@@ -235,7 +243,8 @@ class ParkingDetailsScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildInfoRow(String label, String value) {
+  Widget _buildInfoRow(BuildContext context, String label, String value) {
+    final theme = Theme.of(context);
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
@@ -247,13 +256,14 @@ class ParkingDetailsScreen extends StatelessWidget {
         ),
         Text(
           value,
-          style: TextStyle(color: Colors.grey.shade700),
+          style: TextStyle(color: theme.colorScheme.onSurface.withOpacity(0.7)),
         ),
       ],
     );
   }
 
-  Widget _buildTimeRemaining() {
+  Widget _buildTimeRemaining(BuildContext context) {
+    final theme = Theme.of(context);
     final now = DateTime.now();
     final remaining = parkingSpot.timerEnd!.difference(now);
 
@@ -262,19 +272,19 @@ class ParkingDetailsScreen extends StatelessWidget {
     String text;
 
     if (remaining.isNegative) {
-      color = Colors.red;
+      color = theme.colorScheme.error;
       icon = Icons.error;
       text = 'EXPIRED ${_formatDuration(remaining.abs())} ago';
     } else if (remaining.inMinutes < 15) {
-      color = Colors.red;
+      color = theme.colorScheme.error;
       icon = Icons.warning;
       text = '${_formatDuration(remaining)} remaining';
     } else if (remaining.inMinutes < 30) {
-      color = Colors.orange;
+      color = theme.colorScheme.secondary;
       icon = Icons.warning_amber;
       text = '${_formatDuration(remaining)} remaining';
     } else {
-      color = Colors.green;
+      color = theme.colorScheme.tertiary;
       icon = Icons.check_circle;
       text = '${_formatDuration(remaining)} remaining';
     }
@@ -333,9 +343,9 @@ class ParkingDetailsScreen extends StatelessWidget {
               Navigator.pop(context); // Close dialog
               onDelete(); // Call delete callback
             },
-            child: const Text(
+            child: Text(
               'Delete',
-              style: TextStyle(color: Colors.red),
+              style: TextStyle(color: Theme.of(context).colorScheme.error),
             ),
           ),
         ],

@@ -16,7 +16,7 @@ class MiniMapWidget extends StatefulWidget {
 }
 
 class _MiniMapWidgetState extends State<MiniMapWidget> {
-  Set<Marker> _markers = {};
+  final Set<Marker> _markers = {};
 
   @override
   void initState() {
@@ -46,6 +46,7 @@ class _MiniMapWidgetState extends State<MiniMapWidget> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return GestureDetector(
       onTap: _openFullMap,
       child: Container(
@@ -54,7 +55,7 @@ class _MiniMapWidgetState extends State<MiniMapWidget> {
           borderRadius: BorderRadius.circular(12),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.1),
+              color: theme.colorScheme.primary.withOpacity(0.1),
               blurRadius: 8,
               offset: const Offset(0, 2),
             ),
@@ -95,7 +96,7 @@ class _MiniMapWidgetState extends State<MiniMapWidget> {
                   end: Alignment.bottomCenter,
                   colors: [
                     Colors.transparent,
-                    Colors.black.withOpacity(0.3),
+                    theme.colorScheme.onSurface.withOpacity(0.2),
                   ],
                 ),
               ),
@@ -113,25 +114,26 @@ class _MiniMapWidgetState extends State<MiniMapWidget> {
                     vertical: 8,
                   ),
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: theme.colorScheme.surface,
                     borderRadius: BorderRadius.circular(20),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.2),
+                        color: theme.colorScheme.primary.withOpacity(0.2),
                         blurRadius: 4,
                         offset: const Offset(0, 2),
                       ),
                     ],
                   ),
-                  child: const Row(
+                  child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.map, size: 18, color: Colors.blue),
-                      SizedBox(width: 8),
+                      Icon(Icons.map,
+                          size: 18, color: theme.colorScheme.primary),
+                      const SizedBox(width: 8),
                       Text(
                         'Tap to view full map',
                         style: TextStyle(
-                          color: Colors.blue,
+                          color: theme.colorScheme.primary,
                           fontWeight: FontWeight.w500,
                         ),
                       ),

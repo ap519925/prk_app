@@ -54,7 +54,7 @@ class ParkingAlert {
       ),
       title: json['title'] as String,
       description: json['description'] as String,
-      expiresAt: json['expiresAt'] != null 
+      expiresAt: json['expiresAt'] != null
           ? DateTime.parse(json['expiresAt'] as String)
           : null,
       dayOfWeek: json['dayOfWeek'] as String?,
@@ -87,15 +87,15 @@ class ParkingAlert {
     switch (type) {
       case ParkingAlertType.noParking:
       case ParkingAlertType.snowEmergency:
-        return 'red';
+        return 'error'; // Uses theme color scheme.error (red)
       case ParkingAlertType.streetCleaning:
       case ParkingAlertType.meteredParking:
-        return 'orange';
+        return 'tertiary'; // Uses theme color scheme.tertiary (orange)
       case ParkingAlertType.timeLimitedZone:
       case ParkingAlertType.permitOnly:
-        return 'yellow';
+        return 'secondary'; // Uses theme color scheme.secondary (slate gray)
       default:
-        return 'blue';
+        return 'primary'; // Uses theme color scheme.primary (teal)
     }
   }
 }
@@ -113,4 +113,3 @@ class ParkingRulesResponse {
     this.hasActiveRestrictions = false,
   });
 }
-

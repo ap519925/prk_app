@@ -10,7 +10,8 @@ class ParkingAlertsService {
 
   // You can replace this with actual parking API endpoints
   // Options: OpenStreetMap, city-specific parking APIs, or commercial APIs
-  static const String _osmOverpassUrl = 'https://overpass-api.de/api/interpreter';
+  static const String _osmOverpassUrl =
+      'https://overpass-api.de/api/interpreter';
 
   /// Fetches parking alerts for a given location
   Future<ParkingRulesResponse> getParkingAlerts(
@@ -27,10 +28,11 @@ class ParkingAlertsService {
       final alerts = <ParkingAlert>[];
 
       // 1. NYC Open Data (highest priority for NYC locations)
-      if (city?.toLowerCase().contains('new york') == true || 
+      if (city?.toLowerCase().contains('new york') == true ||
           NYCParkingService.instance.isInNYC(latitude, longitude)) {
         print('Location is in NYC - fetching official parking data...');
-        final nycAlerts = await NYCParkingService.instance.getParkingRegulations(
+        final nycAlerts =
+            await NYCParkingService.instance.getParkingRegulations(
           latitude: latitude,
           longitude: longitude,
           radiusMeters: 200,
@@ -44,18 +46,27 @@ class ParkingAlertsService {
       alerts.addAll(osmAlerts);
 
       // 3. Add city-specific rules (can be expanded with real APIs)
-      final cityAlerts = await _getCitySpecificAlerts(city, state, latitude, longitude);
+      final cityAlerts =
+          await _getCitySpecificAlerts(city, state, latitude, longitude);
       alerts.addAll(cityAlerts);
 
       // 4. Check for weather-related restrictions
       final weatherAlerts = await _getWeatherBasedAlerts(city, state);
       alerts.addAll(weatherAlerts);
 
+      // De-duplicate alerts by type + title + description
+      final unique = <String, ParkingAlert>{};
+      for (final a in alerts) {
+        final key = '${a.type.name}|${a.title}|${a.description}'.toLowerCase();
+        unique.putIfAbsent(key, () => a);
+      }
+      final deduped = unique.values.toList();
+
       return ParkingRulesResponse(
-        alerts: alerts,
+        alerts: deduped,
         city: city,
         state: state,
-        hasActiveRestrictions: alerts.any((a) => a.isActive),
+        hasActiveRestrictions: deduped.any((a) => a.isActive),
       );
     } catch (e) {
       print('Error fetching parking alerts: $e');
@@ -98,7 +109,7 @@ class ParkingAlertsService {
 
   List<ParkingAlert> _parseOSMResponse(Map<String, dynamic> data) {
     final alerts = <ParkingAlert>[];
-    
+
     try {
       final elements = data['elements'] as List?;
       if (elements == null) return alerts;
@@ -108,10 +119,11 @@ class ParkingAlertsService {
         if (tags == null) continue;
 
         // Check for parking restrictions
-        if (tags.containsKey('parking:condition:left') || 
+        if (tags.containsKey('parking:condition:left') ||
             tags.containsKey('parking:condition:right')) {
-          final condition = tags['parking:condition:left'] ?? tags['parking:condition:right'];
-          
+          final condition =
+              tags['parking:condition:left'] ?? tags['parking:condition:right'];
+
           if (condition.toString().contains('no_parking')) {
             alerts.add(ParkingAlert(
               id: 'osm_${element['id']}',
@@ -162,6 +174,10 @@ class ParkingAlertsService {
     final alerts = <ParkingAlert>[];
 
     if (city == null) return alerts;
+    // Avoid generic templates in NYC; rely on official NYC Open Data results
+    if (NYCParkingService.instance.isInNYC(lat, lon)) {
+      return alerts;
+    }
 
     // This is a template - you can integrate with specific city APIs
     // Examples of city parking APIs:
@@ -175,9 +191,10 @@ class ParkingAlertsService {
     final dayOfWeek = _getDayOfWeek(now.weekday);
 
     // Example: Street cleaning rules (common in many cities)
-    if (now.weekday >= 1 && now.weekday <= 5) { // Monday to Friday
+    if (now.weekday >= 1 && now.weekday <= 5) {
+      // Monday to Friday
       alerts.add(ParkingAlert(
-        id: 'street_cleaning_${city}_${lat}_${lon}',
+        id: 'street_cleaning_${city}_${lat}_$lon',
         type: ParkingAlertType.streetCleaning,
         title: 'Street Cleaning',
         description: 'Check local signs for street cleaning schedule',
@@ -225,7 +242,7 @@ class ParkingAlertsService {
 
     for (final alert in alerts) {
       if (alert.expiresAt != null) {
-        if (earliestExpiration == null || 
+        if (earliestExpiration == null ||
             alert.expiresAt!.isBefore(earliestExpiration)) {
           earliestExpiration = alert.expiresAt;
         }
@@ -238,11 +255,11 @@ class ParkingAlertsService {
   /// Get alerts that are currently active or about to become active
   List<ParkingAlert> getActiveAlerts(List<ParkingAlert> alerts) {
     final now = DateTime.now();
-    
+
     return alerts.where((alert) {
       // If alert has no expiration, consider it always active
       if (alert.expiresAt == null) return true;
-      
+
       // Check if alert hasn't expired yet
       return alert.expiresAt!.isAfter(now);
     }).toList();
@@ -280,4 +297,3 @@ Examples of APIs you can integrate:
 6. Park Smart API (Various cities)
    - Parking regulations by location
 */
-

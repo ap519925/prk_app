@@ -264,7 +264,7 @@ class NotificationService {
 
     final body = activeAlerts.length == 1
         ? activeAlerts.first.description
-        : '${activeAlerts.map((a) => a.title).join(", ")}';
+        : activeAlerts.map((a) => a.title).join(", ");
 
     const androidDetails = AndroidNotificationDetails(
       'parking_summary',

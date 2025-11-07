@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'dart:async';
 import 'package:find_my_car/models/parking_spot.dart';
+import 'package:find_my_car/models/parking_alert.dart';
 import 'package:find_my_car/services/location_service.dart';
 import 'package:find_my_car/services/storage_service.dart';
 import 'package:find_my_car/services/navigation_service.dart';
@@ -9,6 +11,7 @@ import 'package:find_my_car/screens/map_screen.dart';
 import 'package:find_my_car/screens/parking_details_screen.dart';
 import 'package:find_my_car/widgets/mini_map_widget.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:find_my_car/services/bluetooth_auto_parking_service.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -22,11 +25,23 @@ class _HomeScreenState extends State<HomeScreen> {
   bool _isLoading = false;
   bool _loadingAlerts = false;
 
+  // Bluetooth auto-parking
+  BluetoothAutoParkingStatus? _btStatus;
+  StreamSubscription? _btSub;
+  bool _btBusy = false;
+
   @override
   void initState() {
     super.initState();
     _loadParkingSpot();
     _initializeNotifications();
+    // Initialize Bluetooth auto-parking and subscribe to status
+    BluetoothAutoParkingService.instance.initialize();
+    _btSub = BluetoothAutoParkingService.instance.statusStream.listen((s) {
+      if (mounted) {
+        setState(() => _btStatus = s);
+      }
+    });
   }
 
   Future<void> _initializeNotifications() async {
@@ -51,10 +66,10 @@ class _HomeScreenState extends State<HomeScreen> {
       if (position == null) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text(
+            SnackBar(
+              content: const Text(
                   'Unable to get your location. Please enable location services.'),
-              backgroundColor: Colors.red,
+              backgroundColor: Theme.of(context).colorScheme.error,
             ),
           );
         }
@@ -88,6 +103,26 @@ class _HomeScreenState extends State<HomeScreen> {
 
       await StorageService.instance.saveParkingSpot(spot);
 
+      // Schedule notifications for upcoming restrictions (e.g., street cleaning)
+      try {
+        await NotificationService.instance.scheduleAlertNotifications(
+          alertsResponse.alerts,
+          address,
+        );
+      } catch (e) {
+        print('Failed to schedule alert notifications: $e');
+      }
+
+      // Immediate warning for Street Cleaning to help avoid parking there
+      final streetCleaning = alertsResponse.alerts
+          .where((a) => a.type == ParkingAlertType.streetCleaning)
+          .toList();
+      if (streetCleaning.isNotEmpty) {
+        // Send a single high-priority notification to avoid spamming
+        await NotificationService.instance
+            .showParkingAlert(streetCleaning.first);
+      }
+
       // Show alert summary if there are any alerts
       if (alertsResponse.alerts.isNotEmpty) {
         await NotificationService.instance
@@ -106,11 +141,11 @@ class _HomeScreenState extends State<HomeScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('✓ Parking spot saved!$alertMessage'),
-            backgroundColor: Colors.green,
+            backgroundColor: Theme.of(context).colorScheme.tertiary,
             duration: const Duration(seconds: 4),
             action: SnackBarAction(
               label: 'ADD PHOTO',
-              textColor: Colors.white,
+              textColor: Theme.of(context).colorScheme.onPrimary,
               onPressed: _addPhoto,
             ),
           ),
@@ -121,7 +156,7 @@ class _HomeScreenState extends State<HomeScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Error: $e'),
-            backgroundColor: Colors.red,
+            backgroundColor: Theme.of(context).colorScheme.error,
           ),
         );
       }
@@ -138,9 +173,9 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _findMyCar() async {
     if (_parkingSpot == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('No parking spot saved yet!'),
-          backgroundColor: Colors.orange,
+        SnackBar(
+          content: const Text('No parking spot saved yet!'),
+          backgroundColor: Theme.of(context).colorScheme.secondary,
         ),
       );
       return;
@@ -158,9 +193,9 @@ class _HomeScreenState extends State<HomeScreen> {
 
       if (!success) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Unable to open navigation app'),
-            backgroundColor: Colors.red,
+          SnackBar(
+            content: const Text('Unable to open navigation app'),
+            backgroundColor: Theme.of(context).colorScheme.error,
           ),
         );
       }
@@ -199,9 +234,9 @@ class _HomeScreenState extends State<HomeScreen> {
         });
 
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('✓ Photo added!'),
-            backgroundColor: Colors.green,
+          SnackBar(
+            content: const Text('✓ Photo added!'),
+            backgroundColor: Theme.of(context).colorScheme.tertiary,
           ),
         );
       }
@@ -224,9 +259,9 @@ class _HomeScreenState extends State<HomeScreen> {
             if (mounted) {
               Navigator.pop(context);
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Parking spot cleared!'),
-                  backgroundColor: Colors.blue,
+                SnackBar(
+                  content: const Text('Parking spot cleared!'),
+                  backgroundColor: Theme.of(context).colorScheme.primary,
                 ),
               );
             }
@@ -330,7 +365,7 @@ class _HomeScreenState extends State<HomeScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('⏰ Timer set for ${_formatTime(selected)}'),
-            backgroundColor: Colors.blue,
+            backgroundColor: Theme.of(context).colorScheme.primary,
           ),
         );
       }
@@ -344,13 +379,13 @@ class _HomeScreenState extends State<HomeScreen> {
     return Container(
       decoration: BoxDecoration(
         color: isDark
-            ? const Color(0xFF1E293B).withOpacity(0.6) // Slate 800
-            : Colors.orange.shade50,
+            ? theme.colorScheme.surface.withOpacity(0.6)
+            : theme.colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
           color: isDark
-              ? const Color(0xFF3B82F6).withOpacity(0.3) // Bright Blue border
-              : Colors.orange.shade200,
+              ? theme.colorScheme.primary.withOpacity(0.3)
+              : theme.colorScheme.secondary.withOpacity(0.4),
           width: 2,
         ),
       ),
@@ -363,18 +398,14 @@ class _HomeScreenState extends State<HomeScreen> {
               children: [
                 Icon(
                   Icons.warning_amber_rounded,
-                  color: isDark
-                      ? const Color(0xFFEF4444) // Red accent
-                      : Colors.orange.shade700,
+                  color: theme.colorScheme.error,
                 ),
                 const SizedBox(width: 8),
                 Text(
                   'Parking Alerts',
                   style: theme.textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.bold,
-                    color: isDark
-                        ? const Color(0xFFF1F5F9) // Slate 100
-                        : Colors.orange.shade900,
+                    color: theme.colorScheme.onSurface,
                   ),
                 ),
               ],
@@ -385,9 +416,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   child: Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: isDark
-                          ? const Color(0xFF0F172A) // Slate 900
-                          : Colors.white,
+                      color: theme.colorScheme.background,
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Row(
@@ -403,9 +432,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                 alert.title,
                                 style: TextStyle(
                                   fontWeight: FontWeight.bold,
-                                  color: isDark
-                                      ? const Color(0xFFF1F5F9) // Slate 100
-                                      : Colors.black87,
+                                  color: theme.colorScheme.onSurface,
                                 ),
                               ),
                               const SizedBox(height: 4),
@@ -413,9 +440,8 @@ class _HomeScreenState extends State<HomeScreen> {
                                 alert.description,
                                 style: TextStyle(
                                   fontSize: 13,
-                                  color: isDark
-                                      ? const Color(0xFFF1F5F9).withOpacity(0.7)
-                                      : Colors.grey.shade700,
+                                  color: theme.colorScheme.onSurface
+                                      .withOpacity(0.7),
                                 ),
                               ),
                               if (alert.timeRange != null) ...[
@@ -424,9 +450,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                   alert.timeRange!,
                                   style: TextStyle(
                                     fontSize: 12,
-                                    color: isDark
-                                        ? const Color(0xFF3B82F6) // Bright Blue
-                                        : Colors.grey.shade600,
+                                    color: theme.colorScheme.primary,
                                     fontStyle: FontStyle.italic,
                                   ),
                                 ),
@@ -444,9 +468,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: Text(
                   'View all ${alerts.length} alerts',
                   style: TextStyle(
-                    color: isDark
-                        ? const Color(0xFF3B82F6) // Bright Blue
-                        : Colors.orange.shade700,
+                    color: theme.colorScheme.primary,
                   ),
                 ),
               ),
@@ -462,6 +484,9 @@ class _HomeScreenState extends State<HomeScreen> {
     final minute = time.minute.toString().padLeft(2, '0');
     return '$hour:$minute $period';
   }
+
+  // Alias used by the Bluetooth UI section
+  String _timeAgo(DateTime dt) => _getTimeAgo(dt);
 
   @override
   Widget build(BuildContext context) {
@@ -498,7 +523,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       children: [
                         Icon(
                           Icons.check_circle,
-                          color: Colors.green,
+                          color: theme.colorScheme.tertiary,
                           size: 48,
                         ),
                         const SizedBox(height: 12),
@@ -536,11 +561,12 @@ class _HomeScreenState extends State<HomeScreen> {
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               Icon(Icons.photo_camera,
-                                  size: 16, color: Colors.blue),
+                                  size: 16, color: theme.colorScheme.primary),
                               const SizedBox(width: 4),
                               Text(
                                 'Photo attached',
-                                style: TextStyle(color: Colors.blue),
+                                style:
+                                    TextStyle(color: theme.colorScheme.primary),
                               ),
                             ],
                           ),
@@ -567,6 +593,240 @@ class _HomeScreenState extends State<HomeScreen> {
                   _buildAlertsSection(theme),
                   const SizedBox(height: 16),
                 ],
+
+                // Auto Parking via Bluetooth Section
+                Card(
+                  elevation: 2,
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(Icons.bluetooth,
+                                color: theme.colorScheme.primary),
+                            const SizedBox(width: 8),
+                            Text(
+                              'Auto Parking via Bluetooth',
+                              style: theme.textTheme.titleMedium
+                                  ?.copyWith(fontWeight: FontWeight.bold),
+                            ),
+                            const Spacer(),
+                            Switch(
+                              value: _btStatus?.enabled ?? false,
+                              onChanged: (v) async {
+                                setState(() => _btBusy = true);
+                                try {
+                                  if (v) {
+                                    // If turning ON and no device selected yet, force selection first.
+                                    if ((_btStatus?.selectedDeviceId ?? '')
+                                        .isEmpty) {
+                                      final devices =
+                                          await BluetoothAutoParkingService
+                                              .instance
+                                              .scanForDevices(
+                                                  timeout: const Duration(
+                                                      seconds: 6));
+                                      if (!mounted) return;
+                                      if (devices.isEmpty) {
+                                        ScaffoldMessenger.of(context)
+                                            .showSnackBar(
+                                          const SnackBar(
+                                            content: Text(
+                                                'No Bluetooth devices found nearby'),
+                                          ),
+                                        );
+                                        return;
+                                      }
+                                      // Picker
+                                      final picked = await showModalBottomSheet<
+                                          BluetoothDeviceInfo>(
+                                        context: context,
+                                        builder: (context) => SafeArea(
+                                          child: ListView.builder(
+                                            itemCount: devices.length,
+                                            itemBuilder: (context, idx) {
+                                              final d = devices[idx];
+                                              return ListTile(
+                                                leading:
+                                                    const Icon(Icons.bluetooth),
+                                                title: Text(d.name),
+                                                subtitle: Text(d.id),
+                                                onTap: () =>
+                                                    Navigator.pop(context, d),
+                                              );
+                                            },
+                                          ),
+                                        ),
+                                      );
+                                      if (picked == null) {
+                                        // User cancelled selection; keep switch OFF
+                                        return;
+                                      }
+                                      await BluetoothAutoParkingService.instance
+                                          .setSelectedDevice(
+                                        deviceId: picked.id,
+                                        deviceName: picked.name,
+                                      );
+                                      if (!mounted) return;
+                                      ScaffoldMessenger.of(context)
+                                          .showSnackBar(
+                                        SnackBar(
+                                          content: Text(
+                                              'Selected "${picked.name}" for auto-parking'),
+                                        ),
+                                      );
+                                    }
+                                    // Enable and start monitoring
+                                    await BluetoothAutoParkingService.instance
+                                        .setEnabled(true);
+                                  } else {
+                                    await BluetoothAutoParkingService.instance
+                                        .setEnabled(false);
+                                  }
+                                } catch (e) {
+                                  if (mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                          content: Text('Bluetooth error: $e')),
+                                    );
+                                  }
+                                } finally {
+                                  if (mounted) setState(() => _btBusy = false);
+                                }
+                              },
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          _btStatus == null
+                              ? 'Initializing...'
+                              : [
+                                  if ((_btStatus?.selectedDeviceName ?? '')
+                                      .isNotEmpty)
+                                    'Device: ${_btStatus!.selectedDeviceName}',
+                                  'Adapter: ${_btStatus?.adapterLabel ?? 'Unknown'}',
+                                  if (_btStatus?.lastSeen != null)
+                                    'Last seen: ${_timeAgo(_btStatus!.lastSeen!)}',
+                                  if ((_btStatus?.error ?? '').isNotEmpty)
+                                    'Error: ${_btStatus!.error}',
+                                ].where((e) => e.isNotEmpty).join(' • '),
+                          style: theme.textTheme.bodySmall?.copyWith(
+                              color:
+                                  theme.colorScheme.onSurface.withOpacity(0.7)),
+                        ),
+                        const SizedBox(height: 12),
+                        Row(
+                          children: [
+                            ElevatedButton.icon(
+                              onPressed: _btBusy
+                                  ? null
+                                  : () async {
+                                      setState(() => _btBusy = true);
+                                      try {
+                                        final devices =
+                                            await BluetoothAutoParkingService
+                                                .instance
+                                                .scanForDevices(
+                                                    timeout: const Duration(
+                                                        seconds: 6));
+                                        if (!mounted) return;
+                                        if (devices.isEmpty) {
+                                          ScaffoldMessenger.of(context)
+                                              .showSnackBar(
+                                            const SnackBar(
+                                                content: Text(
+                                                    'No Bluetooth devices found nearby')),
+                                          );
+                                        } else {
+                                          // Show picker
+                                          await showModalBottomSheet(
+                                            context: context,
+                                            builder: (context) => SafeArea(
+                                              child: ListView.builder(
+                                                itemCount: devices.length,
+                                                itemBuilder: (context, idx) {
+                                                  final d = devices[idx];
+                                                  return ListTile(
+                                                    leading: const Icon(
+                                                        Icons.bluetooth),
+                                                    title: Text(d.name),
+                                                    subtitle: Text(d.id),
+                                                    onTap: () async {
+                                                      Navigator.pop(context);
+                                                      await BluetoothAutoParkingService
+                                                          .instance
+                                                          .setSelectedDevice(
+                                                        deviceId: d.id,
+                                                        deviceName: d.name,
+                                                      );
+                                                      ScaffoldMessenger.of(
+                                                              context)
+                                                          .showSnackBar(
+                                                        SnackBar(
+                                                            content: Text(
+                                                                'Selected "${d.name}" for auto-parking')),
+                                                      );
+                                                    },
+                                                  );
+                                                },
+                                              ),
+                                            ),
+                                          );
+                                        }
+                                      } catch (e) {
+                                        if (mounted) {
+                                          ScaffoldMessenger.of(context)
+                                              .showSnackBar(
+                                            SnackBar(
+                                                content:
+                                                    Text('Scan error: $e')),
+                                          );
+                                        }
+                                      } finally {
+                                        if (mounted)
+                                          setState(() => _btBusy = false);
+                                      }
+                                    },
+                              icon: const Icon(Icons.search),
+                              label: Text(_btBusy
+                                  ? 'Scanning...'
+                                  : 'Scan & Select Device'),
+                            ),
+                            const SizedBox(width: 12),
+                            if ((_btStatus?.selectedDeviceName ?? '')
+                                .isNotEmpty)
+                              OutlinedButton.icon(
+                                onPressed: _btBusy
+                                    ? null
+                                    : () async {
+                                        await BluetoothAutoParkingService
+                                            .instance
+                                            .setSelectedDevice(
+                                          deviceId:
+                                              _btStatus!.selectedDeviceId!,
+                                          deviceName:
+                                              _btStatus!.selectedDeviceName!,
+                                        );
+                                        if (!mounted) return;
+                                        ScaffoldMessenger.of(context)
+                                            .showSnackBar(
+                                          const SnackBar(
+                                              content: Text(
+                                                  'Device selection refreshed')),
+                                        );
+                                      },
+                                icon: const Icon(Icons.check),
+                                label: const Text('Use Selected'),
+                              ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
               ],
 
               // Big buttons
@@ -623,12 +883,9 @@ class _HomeScreenState extends State<HomeScreen> {
                   backgroundColor: theme.colorScheme.secondary, // Green
                   foregroundColor: theme.colorScheme.onSecondary,
                   minimumSize: const Size.fromHeight(70),
-                  disabledBackgroundColor: theme.brightness == Brightness.dark
-                      ? const Color(0xFF1E293B)
-                      : Colors.grey.shade300,
-                  disabledForegroundColor: theme.brightness == Brightness.dark
-                      ? const Color(0xFFF1F5F9).withOpacity(0.3)
-                      : Colors.grey.shade500,
+                  disabledBackgroundColor: theme.colorScheme.surface,
+                  disabledForegroundColor:
+                      theme.colorScheme.onSurface.withOpacity(0.3),
                 ),
               ),
 
@@ -706,5 +963,11 @@ class _HomeScreenState extends State<HomeScreen> {
     } else {
       return 'just now';
     }
+  }
+
+  @override
+  void dispose() {
+    _btSub?.cancel();
+    super.dispose();
   }
 }
