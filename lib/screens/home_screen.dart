@@ -416,7 +416,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   child: Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: theme.colorScheme.background,
+                      color: theme.colorScheme.surface,
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Row(
@@ -786,8 +786,9 @@ class _HomeScreenState extends State<HomeScreen> {
                                           );
                                         }
                                       } finally {
-                                        if (mounted)
+                                        if (mounted) {
                                           setState(() => _btBusy = false);
+                                        }
                                       }
                                     },
                               icon: const Icon(Icons.search),

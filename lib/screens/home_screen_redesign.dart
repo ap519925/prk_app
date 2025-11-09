@@ -191,9 +191,9 @@ class _HomeScreenRedesignState extends State<HomeScreenRedesign>
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: [
-              theme.colorScheme.background,
               theme.colorScheme.surface,
-              theme.colorScheme.background,
+              theme.colorScheme.surface,
+              theme.colorScheme.surface,
             ],
           ),
         ),
@@ -407,7 +407,7 @@ class _HomeScreenRedesignState extends State<HomeScreenRedesign>
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.background.withOpacity(0.6),
+              color: Theme.of(context).colorScheme.surface.withOpacity(0.6),
               borderRadius: BorderRadius.circular(16),
             ),
             child: Row(
@@ -717,7 +717,7 @@ class _HomeScreenRedesignState extends State<HomeScreenRedesign>
           end: Alignment.bottomRight,
           colors: [
             theme.colorScheme.surface.withOpacity(0.6),
-            theme.colorScheme.background.withOpacity(0.6),
+            theme.colorScheme.surface.withOpacity(0.6),
           ],
         ),
       ),

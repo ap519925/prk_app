@@ -96,7 +96,9 @@ class ParkingRegulationSign {
     final r = ((mainRule ?? signDescription) ?? '').toUpperCase();
     if (r.contains('NO PARKING') ||
         r.contains('NO STANDING') ||
-        r.contains('NO STOPPING')) return '🚫';
+        r.contains('NO STOPPING')) {
+      return '🚫';
+    }
     if (r.contains('METER') || r.contains('PAY')) return '💰';
     if (r.contains('LOADING') || r.contains('COMMERCIAL')) return '📦';
     if (r.contains('PERMIT') || r.contains('AUTHORIZED')) return '🎫';

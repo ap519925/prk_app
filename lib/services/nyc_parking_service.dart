@@ -402,10 +402,7 @@ class NYCParkingService {
       String? mer = m.group(3) ?? fallbackMeridiem;
 
       // Infer missing meridiem using common patterns
-      if (mer == null) {
-        // Heuristic: street cleaning typically morning; default to AM
-        mer = 'AM';
-      }
+      mer ??= 'AM';
 
       if (mer == 'PM' && hour != 12) hour += 12;
       if (mer == 'AM' && hour == 12) hour = 0;

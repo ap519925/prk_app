@@ -51,14 +51,12 @@ ThemeData getDarkTheme() {
       secondary: AppColors.darkSecondary, // Light slate gray
       tertiary: AppColors.darkSuccess, // Success
       error: AppColors.darkAlert, // Red
-      surface: AppColors.darkSurface, // Elevated slate
-      background: AppColors.darkBackground, // Deep slate
+      surface: AppColors.darkSurface, // Deep slate
       onPrimary: AppColors.darkTextPrimary, // Off-white
       onSecondary: AppColors.darkTextPrimary, // Off-white
       onTertiary: AppColors.darkTextPrimary, // Off-white
       onError: AppColors.darkTextPrimary, // Off-white
       onSurface: AppColors.darkTextPrimary, // Off-white
-      onBackground: AppColors.darkTextPrimary, // Off-white
     ),
     scaffoldBackgroundColor: AppColors.darkBackground,
     useMaterial3: true,
@@ -83,7 +81,7 @@ ThemeData getDarkTheme() {
         ),
       ),
     ),
-    appBarTheme: AppBarTheme(
+    appBarTheme: const AppBarTheme(
       backgroundColor: AppColors.darkSurface,
       foregroundColor: AppColors.darkTextPrimary,
       elevation: 0,
@@ -99,14 +97,12 @@ ThemeData getLightTheme() {
       secondary: AppColors.lightSecondary, // Slate gray - Secondary/borders
       tertiary: AppColors.lightSuccess, // Success
       error: AppColors.lightAlert, // Darker red - Warnings
-      surface: AppColors.lightSurface, // White - Cards, panels
-      background: AppColors.lightBackground, // Light gray
+      surface: AppColors.lightSurface, // Light gray
       onPrimary: AppColors.lightSurface, // Text on primary (white)
       onSecondary: AppColors.lightSurface, // Text on secondary (white)
       onTertiary: AppColors.lightSurface, // Text on success (white)
       onError: AppColors.lightSurface, // Text on error (white)
       onSurface: AppColors.lightTextPrimary, // Main text
-      onBackground: AppColors.lightTextPrimary, // Main text
     ),
     scaffoldBackgroundColor: AppColors.lightBackground,
     useMaterial3: true,

@@ -136,8 +136,9 @@ class ParkingMeter {
     final lng = (loc != null && loc is List && loc.length == 2)
         ? (loc[0] as num).toDouble()
         : null;
-    if (lat == null || lng == null)
+    if (lat == null || lng == null) {
       throw Exception('Missing lat/lng in NYC meter record');
+    }
     return ParkingMeter(
       meterId: json['meter_id'] as String?,
       status: json['status'] as String?,

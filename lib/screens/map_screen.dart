@@ -37,6 +37,9 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
   String? _routeDistanceText;
   String? _routeDurationText;
 
+  // Test/Demo mode - set to true to use NYC test coordinates
+  static const bool _useTestNYCLocation = false;
+
   // Animated menu state
   bool _menuExpanded = false;
   late AnimationController _menuAnimationController;
@@ -708,13 +711,17 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
   }
 
   Future<void> _toggleMeters() async {
+    print('🔘 Toggle Meters - Current state: $_showMeters');
     setState(() {
       _showMeters = !_showMeters;
       if (!_showMeters) {
+        print('🗑️ Removing meter markers from map');
         _markers.removeWhere((m) => m.markerId.value.startsWith('meter_'));
       }
     });
+    print('🔘 Toggle Meters - New state: $_showMeters');
     if (_showMeters) {
+      print('📍 Loading meters...');
       await _loadParkingMeters();
     }
   }
@@ -726,6 +733,8 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
     final center = _currentPosition != null
         ? LatLng(_currentPosition!.latitude, _currentPosition!.longitude)
         : LatLng(widget.parkingSpot.latitude, widget.parkingSpot.longitude);
+
+    print('📍 Center location: ${center.latitude}, ${center.longitude}');
 
     try {
       final meters = await NYCParkingMeterService.instance
@@ -752,8 +761,10 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
             ),
           );
         }
+        print('🎯 Total markers in set after adding meters: ${_markers.length}');
+        print('🎯 Meter markers count: ${_markers.where((m) => m.markerId.value.startsWith('meter_')).length}');
       });
-      print('✅ Meters loaded: ${meters.length} markers added');
+      print('✅ Meters loaded: ${meters.length} markers added to map');
     } catch (e) {
       print('❌ Error loading meters: $e');
     } finally {
@@ -1013,18 +1024,35 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
             },
           ),
           // Main menu toggle button
-          FloatingActionButton(
-            heroTag: 'overlay_menu',
-            backgroundColor: _menuExpanded
-                ? theme.colorScheme.secondary
-                : theme.colorScheme.primary,
-            onPressed: _toggleMenu,
-            child: AnimatedRotation(
-              turns: _menuExpanded ? 0.125 : 0.0, // 45 degree rotation
-              duration: const Duration(milliseconds: 300),
-              child: Icon(
-                _menuExpanded ? Icons.close : Icons.layers,
-                color: theme.colorScheme.onPrimary,
+          Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: (_menuExpanded
+                          ? theme.colorScheme.secondary
+                          : theme.colorScheme.primary)
+                      .withOpacity(0.4),
+                  blurRadius: 16,
+                  spreadRadius: 2,
+                  offset: Offset(0, 4),
+                ),
+              ],
+            ),
+            child: FloatingActionButton(
+              heroTag: 'overlay_menu',
+              backgroundColor: _menuExpanded
+                  ? theme.colorScheme.secondary
+                  : theme.colorScheme.primary,
+              onPressed: _toggleMenu,
+              elevation: 0,
+              child: AnimatedRotation(
+                turns: _menuExpanded ? 0.125 : 0.0, // 45 degree rotation
+                duration: const Duration(milliseconds: 300),
+                child: Icon(
+                  _menuExpanded ? Icons.close : Icons.layers,
+                  color: theme.colorScheme.onPrimary,
+                ),
               ),
             ),
           ),
@@ -1102,7 +1130,24 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
       if (_controller.isCompleted && points.isNotEmpty) {
         final controller = await _controller.future;
         LatLngBounds bounds = _calculateBoundsForPoints(points);
-        controller.animateCamera(CameraUpdate.newLatLngBounds(bounds, 60));
+
+        // Reset tilt and bearing for overview
+        await controller.animateCamera(
+          CameraUpdate.newCameraPosition(
+            CameraPosition(
+              target: LatLng(
+                (bounds.southwest.latitude + bounds.northeast.latitude) / 2,
+                (bounds.southwest.longitude + bounds.northeast.longitude) / 2,
+              ),
+              zoom: 14.0,
+              tilt: 0.0,
+              bearing: 0.0,
+            ),
+          ),
+        );
+
+        // Then fit to bounds
+        await controller.animateCamera(CameraUpdate.newLatLngBounds(bounds, 60));
       }
     }
   }
@@ -1191,19 +1236,45 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
     final controller = await _controller.future;
     final idx = _currentStepIndex.clamp(0, _routeSteps.length - 1);
     final step = _routeSteps[idx];
-    final pts = step.points.isNotEmpty
-        ? step.points
-        : <LatLng>[step.startLocation, step.endLocation];
-    if (pts.length >= 2) {
-      final bounds = _calculateBoundsForPoints(pts);
-      await controller.animateCamera(CameraUpdate.newLatLngBounds(bounds, 80));
-    } else if (pts.isNotEmpty) {
-      await controller.animateCamera(
-        CameraUpdate.newCameraPosition(
-          CameraPosition(target: pts.first, zoom: 18.0),
-        ),
-      );
+
+    // Use current position if available for a forward-looking view
+    final targetPosition = _currentPosition != null
+        ? LatLng(_currentPosition!.latitude, _currentPosition!.longitude)
+        : step.startLocation;
+
+    // Calculate bearing (heading direction) for the camera
+    double bearing = 0.0;
+    if (step.points.length >= 2) {
+      bearing = _calculateBearing(step.points[0], step.points[1]);
+    } else if (_currentPosition != null) {
+      bearing = _calculateBearing(targetPosition, step.endLocation);
     }
+
+    // Google Maps-style tilted navigation view
+    await controller.animateCamera(
+      CameraUpdate.newCameraPosition(
+        CameraPosition(
+          target: targetPosition,
+          zoom: 18.5,
+          tilt: 45.0, // Tilted angle for 3D perspective
+          bearing: bearing, // Heading direction
+        ),
+      ),
+    );
+  }
+
+  // Calculate bearing between two points for camera heading
+  double _calculateBearing(LatLng start, LatLng end) {
+    final lat1 = _deg2rad(start.latitude);
+    final lat2 = _deg2rad(end.latitude);
+    final dLon = _deg2rad(end.longitude - start.longitude);
+
+    final y = math.sin(dLon) * math.cos(lat2);
+    final x = math.cos(lat1) * math.sin(lat2) -
+        math.sin(lat1) * math.cos(lat2) * math.cos(dLon);
+
+    final bearing = math.atan2(y, x);
+    return (bearing * 180 / math.pi + 360) % 360; // Convert to degrees
   }
 
   void _gotoStep(int idx) {
@@ -1217,161 +1288,379 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
   void _nextStep() => _gotoStep(_currentStepIndex + 1);
   void _prevStep() => _gotoStep(_currentStepIndex - 1);
 
-  Widget _buildStepHud(ThemeData theme) {
+  // Google Maps-style navigation instruction display
+  Widget _buildNavigationHeader(ThemeData theme) {
     if (_routeSteps.isEmpty) return const SizedBox.shrink();
     final step = _routeSteps[_currentStepIndex];
-    final isDark = theme.brightness == Brightness.dark;
 
-    // Determine step status for visual indicators
-    final isCompleted = _currentStepIndex > 0;
-    final isCurrent = true;
-    final isNext = _currentStepIndex < _routeSteps.length - 1;
+    // Get maneuver icon based on instruction
+    IconData maneuverIcon = _getManeuverIcon(step.instruction);
 
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.15),
+            blurRadius: 12,
+            offset: Offset(0, 4),
+          )
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Large maneuver icon
+              Container(
+                width: 80,
+                height: 80,
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.primary.withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Icon(
+                  maneuverIcon,
+                  size: 48,
+                  color: theme.colorScheme.primary,
+                ),
+              ),
+              const SizedBox(width: 20),
+              // Distance to next turn
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if (step.distanceText.isNotEmpty)
+                      Text(
+                        step.distanceText,
+                        style: TextStyle(
+                          fontSize: 36,
+                          fontWeight: FontWeight.bold,
+                          color: theme.colorScheme.onSurface,
+                          height: 1.0,
+                        ),
+                      ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Then',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: theme.colorScheme.onSurface.withOpacity(0.6),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          // Instruction text
+          Text(
+            step.instruction.isEmpty ? 'Continue on route' : step.instruction,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
+              color: theme.colorScheme.onSurface,
+              height: 1.3,
+            ),
+          ),
+          // Show next step preview if available
+          if (_currentStepIndex < _routeSteps.length - 1) ...[
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Icon(
+                  _getManeuverIcon(_routeSteps[_currentStepIndex + 1].instruction),
+                  size: 16,
+                  color: theme.colorScheme.onSurface.withOpacity(0.5),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Next: ${_routeSteps[_currentStepIndex + 1].instruction}',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: theme.colorScheme.onSurface.withOpacity(0.6),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  // Helper to get appropriate icon for maneuver
+  IconData _getManeuverIcon(String instruction) {
+    final lower = instruction.toLowerCase();
+
+    if (lower.contains('left')) {
+      if (lower.contains('sharp') || lower.contains('hard')) {
+        return Icons.turn_sharp_left;
+      } else if (lower.contains('slight')) {
+        return Icons.turn_slight_left;
+      }
+      return Icons.turn_left;
+    } else if (lower.contains('right')) {
+      if (lower.contains('sharp') || lower.contains('hard')) {
+        return Icons.turn_sharp_right;
+      } else if (lower.contains('slight')) {
+        return Icons.turn_slight_right;
+      }
+      return Icons.turn_right;
+    } else if (lower.contains('u-turn') || lower.contains('uturn')) {
+      return Icons.u_turn_left;
+    } else if (lower.contains('straight') || lower.contains('continue')) {
+      return Icons.straight;
+    } else if (lower.contains('merge')) {
+      return Icons.merge;
+    } else if (lower.contains('exit') || lower.contains('ramp')) {
+      return Icons.ramp_right;
+    } else if (lower.contains('roundabout') || lower.contains('circle')) {
+      return Icons.roundabout_left;
+    } else if (lower.contains('arrive') || lower.contains('destination')) {
+      return Icons.location_on;
+    }
+
+    return Icons.navigation;
+  }
+
+  // Compact ETA strip for navigation mode (Google Maps style)
+  Widget _buildETAStrip(ThemeData theme) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.primary,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 8,
+            offset: Offset(0, 2),
+          )
+        ],
+      ),
+      child: SafeArea(
+        bottom: false,
+        child: Row(
+          children: [
+            // ETA time
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    _routeDurationText ?? '--',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: theme.colorScheme.onPrimary,
+                      height: 1.0,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    _routeDistanceText ?? 'Calculating...',
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: theme.colorScheme.onPrimary.withOpacity(0.9),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            // Exit button
+            Container(
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.2),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: IconButton(
+                icon: Icon(Icons.close),
+                color: theme.colorScheme.onPrimary,
+                onPressed: () => setState(() => _navigationMode = false),
+                tooltip: 'Exit Navigation',
+                iconSize: 20,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // Bottom navigation controls for navigation mode
+  Widget _buildNavigationControls(ThemeData theme) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
         color: theme.colorScheme.surface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-            color: theme.colorScheme.primary.withOpacity(0.3), width: 2),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
         boxShadow: [
           BoxShadow(
-            color: theme.colorScheme.primary.withOpacity(0.2),
-            blurRadius: 15,
-            spreadRadius: 1,
+            color: Colors.black.withOpacity(0.15),
+            blurRadius: 12,
+            offset: Offset(0, -4),
           )
         ],
       ),
-      child: Row(
-        children: [
-          // Step progress indicator
-          Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: isCompleted
-                  ? theme.colorScheme.primary.withOpacity(0.2)
-                  : isCurrent
-                      ? theme.colorScheme.primary
-                      : theme.colorScheme.onSurface.withOpacity(0.1),
-              border: Border.all(
-                color: isCompleted
-                    ? theme.colorScheme.primary
-                    : isCurrent
-                        ? theme.colorScheme.primary
-                        : theme.colorScheme.onSurface.withOpacity(0.3),
-                width: 2,
+      child: SafeArea(
+        top: false,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: [
+            // Route overview button
+            _buildNavControlButton(
+              icon: Icons.route,
+              label: 'Overview',
+              onTap: () {
+                setState(() => _honeInOnRoute = false);
+                _focusOnRoute();
+              },
+              theme: theme,
+            ),
+            // Re-center button
+            _buildNavControlButton(
+              icon: Icons.my_location,
+              label: 'Re-center',
+              onTap: () {
+                setState(() => _honeInOnRoute = true);
+                _focusOnCurrentStep();
+              },
+              theme: theme,
+            ),
+            // Step navigation
+            _buildNavControlButton(
+              icon: Icons.list,
+              label: 'Steps',
+              onTap: () {
+                // Show step list dialog
+                _showStepsList(theme);
+              },
+              theme: theme,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildNavControlButton({
+    required IconData icon,
+    required String label,
+    required VoidCallback onTap,
+    required ThemeData theme,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              icon,
+              color: theme.colorScheme.primary,
+              size: 24,
+            ),
+            const SizedBox(height: 4),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 12,
+                color: theme.colorScheme.onSurface,
+                fontWeight: FontWeight.w600,
               ),
             ),
-            child: Center(
-              child: isCompleted
-                  ? Icon(Icons.check,
-                      size: 16, color: theme.colorScheme.primary)
-                  : Text(
-                      '${_currentStepIndex + 1}',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showStepsList(ThemeData theme) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: theme.colorScheme.surface,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => Container(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Route Steps',
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: theme.colorScheme.onSurface,
+              ),
+            ),
+            const SizedBox(height: 16),
+            Flexible(
+              child: ListView.builder(
+                shrinkWrap: true,
+                itemCount: _routeSteps.length,
+                itemBuilder: (context, index) {
+                  final step = _routeSteps[index];
+                  final isCurrent = index == _currentStepIndex;
+                  return ListTile(
+                    leading: Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color: isCurrent
+                            ? theme.colorScheme.primary
+                            : theme.colorScheme.surface,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: isCurrent
+                              ? theme.colorScheme.primary
+                              : theme.colorScheme.onSurface.withOpacity(0.3),
+                        ),
+                      ),
+                      child: Icon(
+                        _getManeuverIcon(step.instruction),
                         color: isCurrent
                             ? theme.colorScheme.onPrimary
-                            : theme.colorScheme.onSurface.withOpacity(0.6),
+                            : theme.colorScheme.onSurface,
+                        size: 20,
                       ),
                     ),
-            ),
-          ),
-
-          const SizedBox(width: 12),
-
-          // Step content
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  step.instruction.isEmpty ? 'Follow route' : step.instruction,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontWeight: FontWeight.w700,
-                    fontSize: 15,
-                    color: theme.colorScheme.onSurface,
-                  ),
-                ),
-                const SizedBox(height: 6),
-                Row(
-                  children: [
-                    Icon(Icons.straighten,
-                        size: 14, color: theme.colorScheme.secondary),
-                    const SizedBox(width: 6),
-                    Text(
-                      step.distanceText.isEmpty ? '' : step.distanceText,
+                    title: Text(
+                      step.instruction,
                       style: TextStyle(
-                        fontSize: 12,
-                        color: theme.colorScheme.onSurface.withOpacity(0.8),
-                        fontWeight: FontWeight.w500,
+                        fontWeight: isCurrent ? FontWeight.bold : FontWeight.normal,
                       ),
                     ),
-                    if (step.distanceText.isNotEmpty &&
-                        step.durationText.isNotEmpty) ...[
-                      const SizedBox(width: 4),
-                      Text(
-                        '•',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: theme.colorScheme.onSurface.withOpacity(0.5),
-                        ),
-                      ),
-                      const SizedBox(width: 4),
-                    ],
-                    if (step.durationText.isNotEmpty) ...[
-                      Icon(Icons.schedule,
-                          size: 12, color: theme.colorScheme.secondary),
-                      const SizedBox(width: 4),
-                      Text(
-                        step.durationText,
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: theme.colorScheme.onSurface.withOpacity(0.8),
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ],
-                  ],
-                ),
-              ],
+                    subtitle: Text('${step.distanceText} • ${step.durationText}'),
+                    onTap: () {
+                      Navigator.pop(context);
+                      _gotoStep(index);
+                    },
+                  );
+                },
+              ),
             ),
-          ),
-
-          const SizedBox(width: 16),
-
-          // Navigation controls
-          Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              IconButton(
-                icon: Icon(Icons.keyboard_arrow_up, size: 20),
-                color: _currentStepIndex > 0
-                    ? theme.colorScheme.primary
-                    : Colors.grey,
-                onPressed: _currentStepIndex > 0 ? _prevStep : null,
-                tooltip: 'Previous step',
-                iconSize: 20,
-              ),
-              IconButton(
-                icon: Icon(Icons.keyboard_arrow_down, size: 20),
-                color: _currentStepIndex < _routeSteps.length - 1
-                    ? theme.colorScheme.primary
-                    : Colors.grey,
-                onPressed: _currentStepIndex < _routeSteps.length - 1
-                    ? _nextStep
-                    : null,
-                tooltip: 'Next step',
-                iconSize: 20,
-              ),
-            ],
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -1380,6 +1669,13 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final theme = Theme.of(context);
+
+    // Debug: Check overlay states
+    print('🗺️ Build - Navigation mode: $_navigationMode');
+    print('🗺️ Build - Show Meters: $_showMeters, Show Closures: $_showClosures, Show Signs: $_showSigns, Show Resurfacing: $_showResurfacing');
+    print('🗺️ Build - Total markers in _markers: ${_markers.length}');
+    print('🗺️ Build - Closure markers: ${_closureMarkers.length}');
+    print('🗺️ Build - Sign markers: ${_signMarkers.length}');
 
     // Navigation mode: just current location, car, and route polyline
     final navMarkers = _markers
@@ -1398,6 +1694,9 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
         .union(_showSigns ? _signMarkers : <Marker>{});
     final markersToShow = _navigationMode ? navMarkers : allOverlayMarkers;
 
+    print('🗺️ Build - Markers to show on map: ${markersToShow.length}');
+    print('🗺️ Build - Marker IDs: ${markersToShow.map((m) => m.markerId.value).take(10).join(", ")}...');
+
     final allOverlayPolylines = _polylines
         .union(_routeStepHighlight)
         .union(_showClosures ? _closurePolylines : <Polyline>{})
@@ -1410,19 +1709,21 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
 
     return Scaffold(
       backgroundColor: theme.colorScheme.surface,
-      appBar: AppBar(
-        title: const Text('Parking Location'),
-        backgroundColor: theme.colorScheme.surface,
-        actions: [
-          IconButton(
-            icon: Icon(_currentMapType == MapType.normal
-                ? Icons.satellite
-                : Icons.map),
-            onPressed: _toggleMapType,
-            tooltip: 'Toggle map type',
-          ),
-        ],
-      ),
+      appBar: _navigationMode
+          ? null
+          : AppBar(
+              title: const Text('Parking Location'),
+              backgroundColor: theme.colorScheme.surface,
+              actions: [
+                IconButton(
+                  icon: Icon(_currentMapType == MapType.normal
+                      ? Icons.satellite
+                      : Icons.map),
+                  onPressed: _toggleMapType,
+                  tooltip: 'Toggle map type',
+                ),
+              ],
+            ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : Stack(
@@ -1452,26 +1753,45 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
                   },
                 ),
 
-                // Distance/ETA card at top
-                if (_distanceInMeters != null)
+                // Navigation mode: ETA strip at very top
+                if (_navigationMode)
+                  Positioned(
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    child: _buildETAStrip(theme),
+                  ),
+
+                // Navigation mode: Large instruction header
+                if (_navigationMode && _routeSteps.isNotEmpty)
+                  Positioned(
+                    top: 60, // Below ETA strip
+                    left: 0,
+                    right: 0,
+                    child: _buildNavigationHeader(theme),
+                  ),
+
+                // Non-navigation mode: Distance/ETA card
+                if (!_navigationMode && _distanceInMeters != null)
                   Positioned(
                     top: 16,
                     left: 16,
                     right: 16,
                     child: Container(
-                      padding: const EdgeInsets.all(16.0),
+                      padding: const EdgeInsets.all(18.0),
                       decoration: BoxDecoration(
                         color: theme.colorScheme.surface,
-                        borderRadius: BorderRadius.circular(16),
+                        borderRadius: BorderRadius.circular(20),
                         border: Border.all(
                           color: theme.colorScheme.primary.withOpacity(0.3),
                           width: 2,
                         ),
                         boxShadow: [
                           BoxShadow(
-                            color: theme.colorScheme.primary.withOpacity(0.2),
-                            blurRadius: 12,
-                            spreadRadius: 0,
+                            color: theme.colorScheme.primary.withOpacity(0.25),
+                            blurRadius: 16,
+                            spreadRadius: 1,
+                            offset: Offset(0, 4),
                           ),
                         ],
                       ),
@@ -1480,160 +1800,212 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
                         children: [
                           Row(
                             children: [
-                              Icon(Icons.straighten,
-                                  color: theme.colorScheme.primary),
-                              const SizedBox(width: 16),
-                              Text(
-                                _routeDistanceText ??
-                                    _formatDistance(_distanceInMeters!),
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                  color: theme.colorScheme.onSurface,
+                              Container(
+                                padding: EdgeInsets.all(8),
+                                decoration: BoxDecoration(
+                                  color: theme.colorScheme.primary.withOpacity(0.15),
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: Icon(Icons.straighten,
+                                    color: theme.colorScheme.primary, size: 20),
+                              ),
+                              const SizedBox(width: 12),
+                              Flexible(
+                                child: Text(
+                                  _routeDistanceText ??
+                                      _formatDistance(_distanceInMeters!),
+                                  style: TextStyle(
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.bold,
+                                    color: theme.colorScheme.onSurface,
+                                  ),
                                 ),
                               ),
-                              if (_routeDurationText != null) ...[
-                                const SizedBox(width: 12),
+                            ],
+                          ),
+                          if (_routeDurationText != null) ...[
+                            const SizedBox(height: 8),
+                            Row(
+                              children: [
                                 Icon(Icons.schedule,
-                                    color: theme.colorScheme.secondary),
-                                const SizedBox(width: 4),
+                                    color: theme.colorScheme.secondary,
+                                    size: 16),
+                                const SizedBox(width: 6),
                                 Text(
                                   _routeDurationText!,
                                   style: TextStyle(
                                     fontSize: 14,
                                     color: theme.colorScheme.onSurface
                                         .withOpacity(0.75),
+                                    fontWeight: FontWeight.w600,
                                   ),
                                 ),
-                              ]
-                            ],
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            'to your car',
-                            style: TextStyle(
-                              color:
-                                  theme.colorScheme.onSurface.withOpacity(0.6),
+                                const SizedBox(width: 8),
+                                Text(
+                                  '• to your car',
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    color: theme.colorScheme.onSurface
+                                        .withOpacity(0.6),
+                                  ),
+                                ),
+                              ],
                             ),
-                          ),
+                          ] else ...[
+                            const SizedBox(height: 4),
+                            Text(
+                              'to your car',
+                              style: TextStyle(
+                                fontSize: 13,
+                                color:
+                                    theme.colorScheme.onSurface.withOpacity(0.6),
+                              ),
+                            ),
+                          ],
                         ],
                       ),
                     ),
                   ),
 
-                // Step HUD (detailed directions)
-                if (_navigationMode && _routeSteps.isNotEmpty)
+                // Location controls - Bottom left (hidden in navigation mode)
+                if (!_navigationMode)
                   Positioned(
                     left: 16,
-                    right: 16,
-                    bottom: 80,
-                    child: _buildStepHud(theme),
-                  ),
-
-                // Location controls - Bottom left
-                Positioned(
-                  left: 16,
-                  bottom: 100,
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      FloatingActionButton(
-                        heroTag: 'parking',
-                        mini: true,
-                        backgroundColor: theme.colorScheme.primary,
-                        onPressed: _centerOnParking,
-                        tooltip: 'Center on parking spot',
-                        child: const Icon(Icons.directions_car),
-                      ),
-                      const SizedBox(height: 8),
-                      if (_currentPosition != null)
-                        FloatingActionButton(
-                          heroTag: 'location',
-                          mini: true,
-                          backgroundColor: theme.colorScheme.secondary,
-                          onPressed: _centerOnCurrentLocation,
-                          tooltip: 'Center on current location',
-                          child: const Icon(Icons.my_location),
-                        ),
-                    ],
-                  ),
-                ),
-
-                // Animated overlay menu - Bottom right
-                _buildAnimatedMenu(),
-
-                // Navigate button
-                Positioned(
-                  bottom: 16,
-                  left: 16,
-                  right: 16,
-                  child: Material(
-                    color: Colors.transparent,
-                    child: InkWell(
-                      onTap: () async {
-                        setState(() {
-                          _navigationMode = true;
-                          _honeInOnRoute = true;
-                        });
-                        await _loadDirections();
-                        await _focusOnCurrentStep();
-                      },
-                      borderRadius: BorderRadius.circular(20),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(vertical: 18),
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: [
-                              theme.colorScheme.secondary,
-                              theme.colorScheme.secondary.withOpacity(0.8),
+                    bottom: 100,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(14),
+                            boxShadow: [
+                              BoxShadow(
+                                color: theme.colorScheme.primary.withOpacity(0.3),
+                                blurRadius: 12,
+                                spreadRadius: 1,
+                                offset: Offset(0, 4),
+                              ),
                             ],
                           ),
-                          borderRadius: BorderRadius.circular(20),
-                          boxShadow: [
-                            BoxShadow(
-                              color:
-                                  theme.colorScheme.secondary.withOpacity(0.4),
-                              blurRadius: 20,
-                              offset: const Offset(0, 10),
-                            ),
-                          ],
+                          child: FloatingActionButton(
+                            heroTag: 'parking',
+                            mini: true,
+                            backgroundColor: theme.colorScheme.primary,
+                            onPressed: _centerOnParking,
+                            tooltip: 'Center on parking spot',
+                            elevation: 0,
+                            child: const Icon(Icons.directions_car),
+                          ),
                         ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(Icons.navigation,
-                                size: 28, color: theme.colorScheme.onSecondary),
-                            const SizedBox(width: 12),
-                            Text(
-                              'START NAVIGATION',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                                color: theme.colorScheme.onSecondary,
-                                letterSpacing: 1,
-                              ),
+                        const SizedBox(height: 12),
+                        if (_currentPosition != null)
+                          Container(
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(14),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: theme.colorScheme.secondary.withOpacity(0.3),
+                                  blurRadius: 12,
+                                  spreadRadius: 1,
+                                  offset: Offset(0, 4),
+                                ),
+                              ],
                             ),
-                          ],
+                            child: FloatingActionButton(
+                              heroTag: 'location',
+                              mini: true,
+                              backgroundColor: theme.colorScheme.secondary,
+                              onPressed: _centerOnCurrentLocation,
+                              tooltip: 'Center on current location',
+                              elevation: 0,
+                              child: const Icon(Icons.my_location),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+
+                // Animated overlay menu - Bottom right (hidden in navigation mode)
+                if (!_navigationMode)
+                  _buildAnimatedMenu(),
+
+                // Navigate button (only shown when not in navigation mode)
+                if (!_navigationMode)
+                  Positioned(
+                    bottom: 16,
+                    left: 16,
+                    right: 16,
+                    child: Material(
+                      color: Colors.transparent,
+                      child: InkWell(
+                        onTap: () async {
+                          setState(() {
+                            _navigationMode = true;
+                            _honeInOnRoute = true;
+                          });
+                          await _loadDirections();
+                          await _focusOnCurrentStep();
+                        },
+                        borderRadius: BorderRadius.circular(24),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 24),
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: [
+                                theme.colorScheme.primary,
+                                theme.colorScheme.primary.withOpacity(0.85),
+                              ],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
+                            borderRadius: BorderRadius.circular(24),
+                            boxShadow: [
+                              BoxShadow(
+                                color:
+                                    theme.colorScheme.primary.withOpacity(0.5),
+                                blurRadius: 20,
+                                spreadRadius: 2,
+                                offset: const Offset(0, 8),
+                              ),
+                            ],
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Container(
+                                padding: EdgeInsets.all(8),
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withOpacity(0.2),
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: Icon(Icons.navigation,
+                                    size: 24, color: theme.colorScheme.onPrimary),
+                              ),
+                              const SizedBox(width: 16),
+                              Text(
+                                'START NAVIGATION',
+                                style: TextStyle(
+                                  fontSize: 17,
+                                  fontWeight: FontWeight.bold,
+                                  color: theme.colorScheme.onPrimary,
+                                  letterSpacing: 1.2,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                     ),
                   ),
-                ),
 
-                // Navigation exit button
+                // Bottom navigation controls (only shown in navigation mode)
                 if (_navigationMode)
                   Positioned(
-                    top: 20,
-                    right: 20,
-                    child: FloatingActionButton(
-                      heroTag: 'exit_navigation',
-                      backgroundColor: theme.colorScheme.error,
-                      onPressed: () => setState(() => _navigationMode = false),
-                      child:
-                          Icon(Icons.close, color: theme.colorScheme.onError),
-                      tooltip: 'Exit Navigation',
-                    ),
-                  )
+                    bottom: 0,
+                    left: 0,
+                    right: 0,
+                    child: _buildNavigationControls(theme),
+                  ),
               ],
             ),
     );

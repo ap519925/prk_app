@@ -233,7 +233,7 @@ class BluetoothAutoParkingService {
 
     final now = DateTime.now();
     // Quick visibility scan (short)
-    final timeout = const Duration(seconds: 5);
+    const timeout = Duration(seconds: 5);
     await FlutterBluePlus.startScan(timeout: timeout);
 
     final sub = FlutterBluePlus.onScanResults.listen((List<ScanResult> rlist) {

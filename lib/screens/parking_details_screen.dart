@@ -175,7 +175,7 @@ class ParkingDetailsScreen extends StatelessWidget {
                             child: Container(
                               padding: const EdgeInsets.all(12),
                               decoration: BoxDecoration(
-                                color: theme.colorScheme.background,
+                                color: theme.colorScheme.surface,
                                 borderRadius: BorderRadius.circular(8),
                               ),
                               child: Column(

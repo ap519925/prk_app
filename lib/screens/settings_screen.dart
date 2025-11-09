@@ -360,7 +360,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final isDark = _settingsService.isDarkMode;
 
     return Scaffold(
-      backgroundColor: theme.colorScheme.background,
+      backgroundColor: theme.colorScheme.surface,
       appBar: AppBar(
         title: const Text('Settings'),
         backgroundColor: theme.colorScheme.surface,

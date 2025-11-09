@@ -110,9 +110,9 @@ class _HomeScreenWebDemoState extends State<HomeScreenWebDemo>
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: [
-              theme.colorScheme.background,
               theme.colorScheme.surface,
-              theme.colorScheme.background,
+              theme.colorScheme.surface,
+              theme.colorScheme.surface,
             ],
           ),
         ),
@@ -356,7 +356,7 @@ class _HomeScreenWebDemoState extends State<HomeScreenWebDemo>
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: theme.colorScheme.background.withOpacity(0.6),
+              color: theme.colorScheme.surface.withOpacity(0.6),
               borderRadius: BorderRadius.circular(16),
             ),
             child: Row(
